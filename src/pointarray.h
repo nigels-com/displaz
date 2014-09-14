@@ -64,6 +64,9 @@ class PointArray : public Geometry
         virtual V3d pickVertex(const V3d& rayOrigin, const V3d& rayDirection,
                                double longitudinalScale, double* distance = 0) const;
 
+        virtual void selectVerticesInSphere(const V3d& centre, double radius,
+                                            int class1, int class2);
+
         /// Draw a representation of the point hierarchy.
         ///
         /// Probably only useful for debugging.
@@ -84,6 +87,8 @@ class PointArray : public Geometry
                      std::vector<GeomField>& fields, V3d& offset,
                      size_t& npoints, size_t& totPoints,
                      Imath::Box3d& bbox, V3d& centroid);
+
+        int findField(const std::string& name, const TypeSpec& spec);
 
         friend struct ProgressFunc;
 

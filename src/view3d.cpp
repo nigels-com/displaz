@@ -82,10 +82,14 @@ static const size_t g_defaultPointRenderCount = 1000000;
 View3D::View3D(GeometryCollection* geometries, QWidget *parent)
     : QGLWidget(parent),
     m_camera(false, false),
+    m_mouseDragged(false),
     m_prevMousePos(0,0),
     m_mouseButton(Qt::NoButton),
     m_cursorPos(0),
     m_prevCursorSnap(0),
+    m_selectionRadius(1),
+    m_selectionClassFrom(0),
+    m_selectionClassTo(1),
     m_drawOffset(0),
     m_backgroundColor(60, 50, 50),
     m_drawBoundingBoxes(true),
@@ -246,6 +250,8 @@ void View3D::initializeGL()
     m_meshFaceShader->setShaderFromSourceFile("shaders:meshface.glsl");
     m_meshEdgeShader.reset(new ShaderProgram(context()));
     m_meshEdgeShader->setShaderFromSourceFile("shaders:meshedge.glsl");
+    m_selectionSphereShader.reset(new ShaderProgram(context()));
+    m_selectionSphereShader->setShaderFromSourceFile("shaders:selection_sphere.glsl");
     m_incrementalFramebuffer = allocIncrementalFramebuffer(width(), height());
 }
 
@@ -353,7 +359,11 @@ void View3D::paintGL()
 
     // Draw overlay stuff, including cursor position.
     if (m_drawCursor)
+    {
+        drawSelectionSphere(transState, m_cursorPos - m_drawOffset,
+                            m_selectionRadius);
         drawCursor(transState, m_cursorPos - m_drawOffset);
+    }
 
     // Set up timer to draw a high quality frame if necessary
     if (totDrawn == 0)
@@ -404,55 +414,65 @@ void View3D::drawMeshes(const TransformState& transState,
 void View3D::mousePressEvent(QMouseEvent* event)
 {
     m_mouseButton = event->button();
+    m_mouseDragged = false;
     m_prevMousePos = event->pos();
 }
 
 
 void View3D::mouseReleaseEvent(QMouseEvent* event)
 {
+    double snapScale = 0.025;
     if (event->button() == Qt::MidButton)
     {
-        double snapScale = 0.025;
-        if (event->modifiers() & Qt::ControlModifier)
-        {
-            // Snap cursor without changing view
-            V3d newPos = snapToGeometry(guessClickPosition(event->pos()), snapScale);
-            V3d posDiff = newPos - m_prevCursorSnap;
-            g_logger.info("Selected %.3f\n"
-                          "    [diff with previous: %.3f m;\n"
-                          "     %.3f]",
-                          newPos, posDiff.length(), posDiff);
-            m_cursorPos = newPos;
-            m_prevCursorSnap = newPos;
-            if (posDiff.length() != 0)
-                updateGL();
-        }
-        else
-        {
-            // Snap camera centre to new position
-            V3d newPos = snapToGeometry(guessClickPosition(event->pos()), snapScale);
-            m_camera.setCenter(exr2qt(newPos - m_drawOffset));
-        }
+        // Snap camera centre to new position
+        V3d newPos = snapToGeometry(guessClickPosition(event->pos()), snapScale);
+        m_camera.setCenter(exr2qt(newPos - m_drawOffset));
+    }
+    else if (!m_mouseDragged && event->button() == Qt::LeftButton &&
+             event->modifiers() & Qt::ControlModifier)
+    {
+        // Snap cursor without changing view
+        V3d newPos = snapToGeometry(guessClickPosition(event->pos()), snapScale);
+        V3d posDiff = newPos - m_prevCursorSnap;
+        g_logger.info("Selected %.3f\n"
+                        "    [diff with previous: %.3f m;\n"
+                        "     %.3f]",
+                        newPos, posDiff.length(), posDiff);
+        m_cursorPos = newPos;
+        m_prevCursorSnap = newPos;
+        if (posDiff.length() != 0)
+            updateGL();
     }
 }
 
 
 void View3D::mouseMoveEvent(QMouseEvent* event)
 {
+    m_mouseDragged = true;
     if (m_mouseButton == Qt::MidButton)
         return;
-    bool zooming = m_mouseButton == Qt::RightButton;
-    if(event->modifiers() & Qt::ControlModifier)
+    if (event->modifiers() & Qt::ControlModifier)
     {
-        m_cursorPos = qt2exr(
-            m_camera.mouseMovePoint(exr2qt(m_cursorPos - m_drawOffset),
-                                    event->pos() - m_prevMousePos,
-                                    zooming) ) + m_drawOffset;
+        // FIXME this logic is confusing
+        bool zooming = event->modifiers() & Qt::ShiftModifier;
+        if (m_mouseButton == Qt::RightButton && !zooming)
+        {
+            double dy = (event->pos() - m_prevMousePos).y();
+            m_selectionRadius *= exp(-4.0*dy/height());
+        }
+        else
+        {
+            m_cursorPos =
+                qt2exr(m_camera.mouseMovePoint(exr2qt(m_cursorPos - m_drawOffset),
+                                               event->pos() - m_prevMousePos,
+                                               zooming)) + m_drawOffset;
+        }
         restartRender();
     }
     else
     {
-        m_camera.mouseDrag(m_prevMousePos, event->pos(), zooming);
+        m_camera.mouseDrag(m_prevMousePos, event->pos(),
+                           m_mouseButton == Qt::RightButton);
     }
     m_prevMousePos = event->pos();
 }
@@ -472,8 +492,37 @@ void View3D::keyPressEvent(QKeyEvent *event)
         // Centre camera on current cursor location
         m_camera.setCenter(exr2qt(m_cursorPos - m_drawOffset));
     }
+    else if(event->key() == Qt::Key_T)
+    {
+        std::swap(m_selectionClassFrom, m_selectionClassTo);
+    }
+    else if(event->key() == Qt::Key_Space)
+    {
+        QModelIndexList sel = m_selectionModel->selectedRows();
+        for (int i = 0; i < sel.size(); ++i)
+        {
+            m_geometries->get()[sel[i].row()]->selectVerticesInSphere(
+                    m_cursorPos, m_selectionRadius,
+                    m_selectionClassFrom, m_selectionClassTo);
+        }
+        restartRender();
+    }
     else
         event->ignore();
+}
+
+
+/// Draw a selection sphere at given `center` and `radius`
+///
+/// `transState` represents the camera and model transforms
+void View3D::drawSelectionSphere(const TransformState& transState,
+                                 const V3f& center, double radius) const
+{
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    drawSphere(transState, center, radius,
+               m_selectionSphereShader->shaderProgram().programId(), Imath::C4f(1,1,1,0.5));
+    glDisable(GL_BLEND);
 }
 
 

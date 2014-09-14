@@ -262,6 +262,17 @@ bool PointArray::loadPly(QString fileName, size_t maxPointCount,
 }
 
 
+int PointArray::findField(const std::string& name, const TypeSpec& spec)
+{
+    for (size_t i = 0; i < m_fields.size(); ++i)
+    {
+        if (m_fields[i].name == name && m_fields[i].spec == spec)
+            return i;
+    }
+    return -1;
+}
+
+
 bool PointArray::loadFile(QString fileName, size_t maxPointCount)
 {
     QTime loadTimer;
@@ -299,15 +310,7 @@ bool PointArray::loadFile(QString fileName, size_t maxPointCount)
         }
     }
     // Search for position field
-    m_positionFieldIdx = -1;
-    for (size_t i = 0; i < m_fields.size(); ++i)
-    {
-        if (m_fields[i].name == "position" && m_fields[i].spec.count == 3)
-        {
-            m_positionFieldIdx = (int)i;
-            break;
-        }
-    }
+    m_positionFieldIdx = findField("position", TypeSpec::vec3float32());
     if (m_positionFieldIdx == -1)
     {
         g_logger.error("No position field found in file %s", fileName);
@@ -361,6 +364,50 @@ V3d PointArray::pickVertex(const V3d& rayOrigin, const V3d& rayDirection,
     if (m_npoints == 0)
         return V3d(0);
     return V3d(m_P[idx]) + offset();
+}
+
+
+void PointArray::selectVerticesInSphere(const V3d& centre, double radius,
+                                        int class1, int class2)
+{
+    V3f relCenter = centre - offset();
+    Box3f sphereBox(relCenter - V3f(radius), relCenter + V3f(radius));
+
+    int classificationIdx = findField("classification", TypeSpec::uint8_i());
+    if (classificationIdx < 0)
+        return;
+
+    uint8_t* classification = m_fields[classificationIdx].as<uint8_t>();
+
+    double radius2 = radius*radius;
+
+    std::vector<const OctreeNode*> nodeStack;
+    nodeStack.push_back(m_rootNode.get());
+    while (!nodeStack.empty())
+    {
+        const OctreeNode* node = nodeStack.back();
+        nodeStack.pop_back();
+        if (!node->bbox.intersects(sphereBox))
+            continue;
+        if (!node->isLeaf())
+        {
+            for (int i = 0; i < 8; ++i)
+            {
+                OctreeNode* n = node->children[i];
+                if (n)
+                    nodeStack.push_back(n);
+            }
+            continue;
+        }
+        for (size_t i = node->beginIndex; i < node->endIndex; ++i)
+        {
+            if ((m_P[i] - relCenter).length2() < radius2)
+            {
+                if (classification[i] == class1)
+                    classification[i] = class2;
+            }
+        }
+    }
 }
 
 

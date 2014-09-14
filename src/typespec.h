@@ -88,6 +88,14 @@ struct TypeSpec
         fixedPoint(fixedPoint)
     {}
 
+    /// Testing for exact equality between TypeSpecs
+    bool operator==(const TypeSpec& other)
+    {
+        return type == other.type   && elsize == other.elsize       &&
+               count == other.count && semantics == other.semantics &&
+               fixedPoint == other.fixedPoint;
+    }
+
     /// Named constructors for common types
     static TypeSpec vec3float32() { return TypeSpec(Float, 4, 3, Vector); }
     static TypeSpec float32() { return TypeSpec(Float, 4, 1); }
