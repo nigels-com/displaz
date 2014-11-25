@@ -356,6 +356,30 @@ bool PointArray::loadFile(QString fileName, size_t maxPointCount)
 }
 
 
+void PointArray::saveFile(QString fileName)
+{
+    int classificationIdx = findField("classification", TypeSpec::uint8_i());
+    if (classificationIdx < 0)
+    {
+        g_logger.error("No classification attribute in file %s", this->fileName());
+        return;
+    }
+
+    uint8_t* classification = m_fields[classificationIdx].as<uint8_t>();
+
+    // Hack: save classified points as XYZC
+    V3d off = offset();
+    std::ofstream out(fileName.toStdString());
+    for (size_t i = 0; i < m_npoints; ++i)
+    {
+        tfm::format(out, "%.3f %.3f %.3f %d\n",
+                    m_P[i].x + off.x, m_P[i].y + off.y, m_P[i].z + off.z,
+                    classification[i]);
+    }
+    g_logger.info("Saved classified points to file: %s", fileName);
+}
+
+
 V3d PointArray::pickVertex(const V3d& rayOrigin, const V3d& rayDirection,
                            double longitudinalScale, double* distance) const
 {

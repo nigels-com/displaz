@@ -57,6 +57,8 @@ class Geometry : public QObject
         /// simplifying the geometry if possible.
         virtual bool loadFile(QString fileName, size_t maxVertexCount) = 0;
 
+        virtual void saveFile(QString fileName) {}
+
         /// Reload geometry from file
         ///
         /// The default implementation just calls loadFile() with the file name

@@ -496,6 +496,16 @@ void View3D::keyPressEvent(QKeyEvent *event)
     {
         std::swap(m_selectionClassFrom, m_selectionClassTo);
     }
+    else if(event->key() == Qt::Key_S && (event->modifiers() & Qt::ControlModifier))
+    {
+        // Horrible dirty hack to save out points to files
+        QModelIndexList sel = m_selectionModel->selectedRows();
+        for (int i = 0; i < sel.size(); ++i)
+        {
+            QString fileName = QString("classified_points_%1.txt").arg(i);
+            m_geometries->get()[sel[i].row()]->saveFile(fileName);
+        }
+    }
     else if(event->key() == Qt::Key_Space)
     {
         QModelIndexList sel = m_selectionModel->selectedRows();
