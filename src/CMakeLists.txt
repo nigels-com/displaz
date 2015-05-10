@@ -55,6 +55,7 @@ set(srcs
     shadereditor.cpp
     shader.cpp
     ../thirdparty/rply/rply.c
+    ../thirdparty/polypartition/polypartition.cpp
 )
 if(WIN32)
     list(APPEND srcs ../package/windows_resources.rc)
