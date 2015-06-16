@@ -58,6 +58,8 @@ set(gui_srcs
     geometrycollection.cpp
     glutil.cpp
     hcloudview.cpp
+    IpcChannel.cpp
+    interactivecamera.cpp
     qtlogger.cpp
     guimain.cpp
     mainwindow.cpp
