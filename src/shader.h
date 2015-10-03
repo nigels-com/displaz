@@ -92,7 +92,7 @@ class Shader
         { }
 #else
         Shader(QOpenGLShader::ShaderType type, const QOpenGLContext* context)
-                : m_shader(type, context)
+                : m_shader(type)
         { }
 #endif
 
@@ -146,12 +146,15 @@ class ShaderProgram : public QObject
     Q_OBJECT
 
     public:
+#ifdef DISPLAZ_USE_QT4
         ShaderProgram(const QGLContext * context, QObject* parent = 0);
 
         /// Access to the underlying shader program
-#idef DISPLAZ_USE_QT4
         QGLShaderProgram& shaderProgram() { return *m_shaderProgram; }
 #else
+        ShaderProgram(const QOpenGLContext * context, QObject* parent = 0);
+
+        /// Access to the underlying shader program
         QOpenGLShaderProgram& shaderProgram() { return *m_shaderProgram; }
 #endif
 
@@ -161,7 +164,7 @@ class ShaderProgram : public QObject
         void setUniforms();
 
         /// Reset the context
-#idef DISPLAZ_USE_QT4
+#ifdef DISPLAZ_USE_QT4
         void setContext(const QGLContext* context);
 #else
         void setContext(const QOpenGLContext* context);
@@ -210,7 +213,7 @@ class ShaderProgram : public QObject
     private:
         void setupParameters();
 
-#idef DISPLAZ_USE_QT4
+#ifdef DISPLAZ_USE_QT4
         const QGLContext* m_context;
 #else
         const QOpenGLContext* m_context;
@@ -223,7 +226,7 @@ class ShaderProgram : public QObject
         ParamMap m_params;
         std::unique_ptr<Shader> m_vertexShader;
         std::unique_ptr<Shader> m_fragmentShader;
-#idef DISPLAZ_USE_QT4
+#ifdef DISPLAZ_USE_QT4
         std::unique_ptr<QGLShaderProgram> m_shaderProgram;
 #else
         std::unique_ptr<QOpenGLShaderProgram> m_shaderProgram;

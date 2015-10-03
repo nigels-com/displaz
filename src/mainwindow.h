@@ -61,6 +61,9 @@ class PointViewerMainWindow : public QMainWindow
         void dropEvent(QDropEvent *event);
 
     private slots:
+#ifndef DISPLAZ_USE_QT4
+        void finalSetup();
+#endif
         void openFiles();
         void addFiles();
         void openShaderFile();

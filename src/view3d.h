@@ -13,9 +13,8 @@
     #include <QGLWidget>
 #else
     #include <QOpenGLFunctions_3_2_Core>
+    //#include <QOpenGLFunctions>
     #include <QOpenGLWidget>
-#endif
-
 #endif
 
 #include <QModelIndex>
@@ -66,6 +65,11 @@ class View3D : public QOpenGLWidget
         const QItemSelectionModel* selectionModel() const { return m_selectionModel; }
         QItemSelectionModel* selectionModel() { return m_selectionModel; }
         void setSelectionModel(QItemSelectionModel* selectionModel);
+
+#ifndef DISPLAZ_USE_QT4
+    signals:
+        void initialisedGL();
+#endif
 
     public slots:
         /// Set the backgroud color

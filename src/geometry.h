@@ -11,7 +11,11 @@
 #include <QString>
 #include <QMetaType>
 
-class QGLShaderProgram;
+#ifdef DISPLAZ_USE_QT4
+    class QGLShaderProgram;
+#else
+    class QOpenGLShaderProgram;
+#endif
 struct TransformState;
 
 
@@ -84,6 +88,7 @@ class Geometry : public QObject
         /// The returned DrawCount should be filled with an estimate of the
         /// actual amount of geometry shaded and whether there's any more to be
         /// drawn.
+#ifdef DISPLAZ_USE_QT4
         virtual DrawCount drawPoints(QGLShaderProgram& pointShaderProg,
                                      const TransformState& transState, double quality,
                                      bool incrementalDraw) const { return DrawCount(); }
@@ -94,7 +99,18 @@ class Geometry : public QObject
         /// Draw faces with the given shader
         virtual void drawFaces(QGLShaderProgram& faceShaderProg,
                                const TransformState& transState) const {}
+#else
+        virtual DrawCount drawPoints(QOpenGLShaderProgram& pointShaderProg,
+                                     const TransformState& transState, double quality,
+                                     bool incrementalDraw) const { return DrawCount(); }
 
+        /// Draw edges with the given shader
+        virtual void drawEdges(QOpenGLShaderProgram& edgeShaderProg,
+                               const TransformState& transState) const {}
+        /// Draw faces with the given shader
+        virtual void drawFaces(QOpenGLShaderProgram& faceShaderProg,
+                               const TransformState& transState) const {}
+#endif
         /// Return total number of vertices
         virtual size_t pointCount() const = 0;
 

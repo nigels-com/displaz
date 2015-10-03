@@ -13,6 +13,7 @@
 #else
     #include <QFormLayout>
     #include <QComboBox>
+    #include <QOpenGLShaderProgram>
 #endif
 
 /// Make shader #define flags for hardware or driver-dependent blacklisted
@@ -301,7 +302,7 @@ bool ShaderProgram::setShader(QString src)
 #ifdef DISPLAZ_USE_QT4
     std::unique_ptr<QGLShaderProgram> newProgram(new QGLShaderProgram(m_context));
 #else
-    std::unique_ptr<QOpenGLShaderProgram> newProgram(new QOpenGLShaderProgram(m_context));
+    std::unique_ptr<QOpenGLShaderProgram> newProgram(new QOpenGLShaderProgram(this)); //TODO: this ?
 #endif
     if (!newProgram->addShader(vertexShader->shader()) ||
         !newProgram->addShader(fragmentShader->shader()))

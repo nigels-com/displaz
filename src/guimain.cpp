@@ -66,7 +66,9 @@ int main(int argc, char* argv[])
     }
 
     QApplication app(argc, argv);
+#ifdef DISPLAZ_USE_QT4
     QTextCodec::setCodecForCStrings(QTextCodec::codecForName("utf8"));
+#endif //removed in Qt5
 
     setupQFileSearchPaths();
 

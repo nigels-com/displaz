@@ -51,7 +51,8 @@
     #include <QDesktopWidget>
     #include <QDropEvent>
     #include <QLocalServer>
-#endig
+    #include <QMimeData>
+#endif
 
 
 //------------------------------------------------------------------------------
@@ -229,8 +230,10 @@ PointViewerMainWindow::PointViewerMainWindow()
     shaderEditorDock->setWidget(shaderEditorUI);
 
     shaderMenu->addAction(m_shaderEditor->compileAction());
+#ifdef DISPLAZ_USE_QT4
     connect(m_shaderEditor->compileAction(), SIGNAL(triggered()),
             this, SLOT(compileShaderFile()));
+#endif
 
     // Log viewer UI
     QDockWidget* logDock = new QDockWidget(tr("Log"), this);
@@ -288,9 +291,23 @@ PointViewerMainWindow::PointViewerMainWindow()
 
     //--------------------------------------------------
     // Final setup
+#ifdef DISPLAZ_USE_QT4
     openShaderFile("shaders:las_points.glsl");
+#else
+    connect(m_pointView, SIGNAL(initialisedGL()), this, SLOT(finalSetup()));
+#endif
 }
 
+#ifndef DISPLAZ_USE_QT4
+void PointViewerMainWindow::finalSetup()
+{
+    openShaderFile("shaders:las_points.glsl");
+    connect(m_shaderEditor->compileAction(), SIGNAL(triggered()),
+            this, SLOT(compileShaderFile()));
+    //connect(m_shaderEditor, SIGNAL(sendShader(QString)),
+    //        &m_pointView->shaderProgram(), SLOT(setShader(QString)));
+}
+#endif
 
 void PointViewerMainWindow::startIpcServer(const QString& socketName)
 {
@@ -516,7 +533,9 @@ void PointViewerMainWindow::openShaderFile(const QString& shaderFileName)
     m_currShaderFileName = shaderFile.fileName();
     QByteArray src = shaderFile.readAll();
     m_shaderEditor->setPlainText(src);
+#ifdef DISPLAZ_USE_QT4
     m_pointView->shaderProgram().setShader(src);
+#endif
 }
 
 
