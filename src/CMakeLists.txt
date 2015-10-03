@@ -3,10 +3,21 @@ project(viewer)
 include_directories(BEFORE
     ../thirdparty
     ${GLEW_INCLUDE_DIR}
-    ${QT_INCLUDES}
     ${OPENGL_INCLUDE_DIR}
     ${THIRDPARTY_INSTALL_DIR}/include
 )
+
+if(DISPLAZ_USE_QT4)
+    include_directories(${QT_INCLUDES})
+else()
+    include_directories(
+        ${Qt5Core_INCLUDE_DIRS}
+        ${Qt5GUI_INCLUDE_DIRS}
+        ${Qt5Network_INCLUDE_DIRS}
+        ${Qt5OpenGL_INCLUDE_DIRS}
+        ${Qt5Widgets_INCLUDE_DIRS}
+    )
+endif()
 
 #------------------------------------------------------------------------------
 # Sources
@@ -22,9 +33,16 @@ set(util_srcs
 )
 
 # Interprocess communication
-qt4_wrap_cpp(ipc_moc_srcs
-    IpcChannel.h
-)
+if(DISPLAZ_USE_QT4)
+    qt4_wrap_cpp(ipc_moc_srcs
+        IpcChannel.h
+    )
+else()
+    qt5_wrap_cpp(ipc_moc_srcs
+        IpcChannel.h
+    )
+endif()
+
 set(ipc_srcs
     ${ipc_moc_srcs}
     InterProcessLock.cpp
@@ -32,22 +50,42 @@ set(ipc_srcs
 )
 
 # GUI
-qt4_wrap_cpp(gui_moc_srcs
-    datasetui.h
-    dragspinbox.h
-    fileloader.h
-    geometry.h
-    geometrycollection.h
-    hcloudview.h
-    helpdialog.h
-    interactivecamera.h
-    qtlogger.h
-    mainwindow.h
-    view3d.h
-    pointarray.h
-    shadereditor.h
-    shader.h
-)
+if(DISPLAZ_USE_QT4)
+    qt4_wrap_cpp(gui_moc_srcs
+        datasetui.h
+        dragspinbox.h
+        fileloader.h
+        geometry.h
+        geometrycollection.h
+        hcloudview.h
+        helpdialog.h
+        interactivecamera.h
+        qtlogger.h
+        mainwindow.h
+        view3d.h
+        pointarray.h
+        shadereditor.h
+        shader.h
+    )
+else()
+    qt5_wrap_cpp(gui_moc_srcs
+        datasetui.h
+        dragspinbox.h
+        fileloader.h
+        geometry.h
+        geometrycollection.h
+        hcloudview.h
+        helpdialog.h
+        interactivecamera.h
+        qtlogger.h
+        mainwindow.h
+        view3d.h
+        pointarray.h
+        shadereditor.h
+        shader.h
+    )
+endif()
+
 set(gui_srcs
     ${util_srcs}
     ${ipc_srcs}
@@ -79,7 +117,11 @@ set(cli_srcs
     main.cpp
 )
 
-qt4_add_resources(RCC_GENERATED resource.qrc)
+if(DISPLAZ_USE_QT4)
+    qt4_add_resources(RCC_GENERATED resource.qrc)
+else()
+    qt5_add_resources(RCC_GENERATED resource.qrc)
+endif()
 
 if(WIN32)
     list(APPEND gui_srcs ../package/windows_resources.rc)
@@ -110,17 +152,36 @@ endif()
 
 #-------------------------------------------------------------------------------
 # Library dependencies
-target_link_libraries(displaz
-    ${QT_QTCORE_LIBRARY} ${QT_QTNETWORK_LIBRARY} ${ILMBASE_LIBRARIES}
-)
-target_link_libraries(displaz-gui
-    ${QT_QTCORE_LIBRARY} ${QT_QTGUI_LIBRARY} ${QT_QTOPENGL_LIBRARY}
-    ${QT_QTNETWORK_LIBRARY} ${OPENGL_gl_LIBRARY} ${GLEW_LIBRARIES}
-    ${ILMBASE_LIBRARIES}
-)
+if(DISPLAZ_USE_QT4)
+    target_link_libraries(displaz
+        ${QT_QTCORE_LIBRARY} ${QT_QTNETWORK_LIBRARY}
+        ${ILMBASE_LIBRARIES}
+    )
+    target_link_libraries(displaz-gui
+        ${QT_QTCORE_LIBRARY} ${QT_QTGUI_LIBRARY} ${QT_QTOPENGL_LIBRARY}
+        ${QT_QTNETWORK_LIBRARY} ${OPENGL_gl_LIBRARY} ${GLEW_LIBRARIES}
+        ${ILMBASE_LIBRARIES}
+    )
+else()
+    target_link_libraries(displaz
+        ${Qt5Core_LIBRARIES} ${Qt5Network_LIBRARIES} ${Qt5Widgets_LIBRARIES}
+        ${ILMBASE_LIBRARIES}
+    )
+    target_link_libraries(displaz-gui
+        ${Qt5Core_LIBRARIES} ${Qt5Gui_LIBRARIES} ${Qt5OpenGL_LIBRARIES}
+        ${Qt5Network_LIBRARIES} ${Qt5Widgets_LIBRARIES}
+        ${OPENGL_gl_LIBRARY} ${GLEW_LIBRARIES}
+        ${ILMBASE_LIBRARIES}
+    )
+endif()
+
 if (DISPLAZ_BUILD_DVOX)
     # TODO: Remove this dependency
-    target_link_libraries(dvox ${QT_QTCORE_LIBRARY})
+    if(DISPLAZ_USE_QT4)
+        target_link_libraries(dvox ${QT_QTCORE_LIBRARY})
+    else()
+        target_link_libraries(dvox ${Qt5Core_LIBRARIES})
+    endif()
 endif()
 
 if (DISPLAZ_USE_LAS)
@@ -139,9 +200,16 @@ endif()
 
 
 if(WIN32)
-    target_link_libraries(displaz-gui
-        ${QT_QTMAIN_LIBRARY}
-    )
+    if(DISPLAZ_USE_QT4)
+        target_link_libraries(displaz-gui
+            ${QT_QTMAIN_LIBRARY}
+        )
+    else()
+        target_link_libraries(displaz-gui
+            ${Qt5Core_LIBRARIES} ${Qt5Gui_LIBRARIES} ${Qt5OpenGL_LIBRARIES}
+            ${Qt5Network_LIBRARIES} ${Qt5Widgets_LIBRARIES}
+        )
+    endif()
     if(DISPLAZ_STATIC)
         # These extra libraries are needed on windows when linking against a
         # static Qt-4.8.? which has been built with the default options.
