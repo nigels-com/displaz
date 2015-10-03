@@ -99,6 +99,9 @@ PointViewerMainWindow::PointViewerMainWindow()
 
     //--------------------------------------------------
     // Menus
+#ifndef DISPLAZ_USE_QT4
+    menuBar()->setNativeMenuBar(false); // OS X doesn't activate the native menu bar under Qt5
+#endif
     // File menu
     QMenu* fileMenu = menuBar()->addMenu(tr("&File"));
     QAction* openAct = fileMenu->addAction(tr("&Open"));
