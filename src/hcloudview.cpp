@@ -3,6 +3,10 @@
 
 #include "hcloudview.h"
 
+#ifndef DISPLAZ_USE_QT4
+    #include <QOpenGLContext>
+#endif
+
 #include "hcloud.h"
 #include "ClipBox.h"
 #include "glutil.h"
@@ -135,7 +139,11 @@ bool HCloudView::loadFile(QString fileName, size_t maxVertexCount)
 
 void HCloudView::initializeGL()
 {
+#ifdef DISPLAZ_USE_QT4
     m_shader.reset(new ShaderProgram(QGLContext::currentContext()));
+#else
+    m_shader.reset(new ShaderProgram(QOpenGLContext::currentContext()));
+#endif
     m_shader->setShaderFromSourceFile("shaders:las_points_lod.glsl");
 }
 
@@ -181,7 +189,11 @@ void HCloudView::draw(const TransformState& transStateIn, double quality) const
     //drawBounds(m_rootNode.get(), transState);
 
     V3f cameraPos = V3d(0) * transState.modelViewMatrix.inverse();
+#ifdef DISPLAZ_USE_QT4
     QGLShaderProgram& prog = m_shader->shaderProgram();
+#else
+    QOpenGLShaderProgram& prog = m_shader->shaderProgram();
+#endif
     prog.bind();
     glEnable(GL_POINT_SPRITE);
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);

@@ -4,14 +4,25 @@
 #include "glutil.h"
 #include "view3d.h"
 
-#include <QtCore/QTimer>
-#include <QtCore/QTime>
-#include <QtGui/QKeyEvent>
-#include <QtGui/QLayout>
-#include <QItemSelectionModel>
-#include <QtOpenGL/QGLFramebufferObject>
-#include <QMessageBox>
-//#include <QtOpenGL/QGLBuffer>
+#ifdef DISPLAZ_USE_QT4
+    #include <QtCore/QTimer>
+    #include <QtCore/QTime>
+    #include <QtGui/QKeyEvent>
+    #include <QtGui/QLayout>
+    #include <QItemSelectionModel>
+    #include <QtOpenGL/QGLFramebufferObject>
+    #include <QMessageBox>
+    //#include <QtOpenGL/QGLBuffer>
+#else
+    #include <QTimer>
+    #include <QTime>
+    #include <QKeyEvent>
+    #include <QLayout>
+    #include <QItemSelectionModel>
+    #include <QOpenGLFramebufferObject>
+    #include <QMessageBox>
+    //#include <QOpenGLBuffer>
+#endif
 
 #include "config.h"
 #include "fileloader.h"
@@ -24,7 +35,11 @@
 
 //------------------------------------------------------------------------------
 View3D::View3D(GeometryCollection* geometries, QWidget *parent)
+#ifdef DISPLAZ_USE_QT4
     : QGLWidget(parent),
+#else
+    : QOpenGLWidget(parent),
+#endif
     m_camera(false, false),
     m_prevMousePos(0,0),
     m_mouseButton(Qt::NoButton),
@@ -224,6 +239,7 @@ void View3D::resizeGL(int w, int h)
 }
 
 
+#ifdef DISPLAZ_USE_QT4
 std::unique_ptr<QGLFramebufferObject> View3D::allocIncrementalFramebuffer(int w, int h) const
 {
     // TODO:
@@ -241,6 +257,25 @@ std::unique_ptr<QGLFramebufferObject> View3D::allocIncrementalFramebuffer(int w,
         g_logger.error("%s", "Failed to attach FBO depth buffer.");
     return fbo;
 }
+#else
+std::unique_ptr<QOpenGLFramebufferObject> View3D::allocIncrementalFramebuffer(int w, int h) const
+{
+    // TODO:
+    // * Should we use multisampling 1 to avoid binding to a texture?
+    const QSurfaceFormat fmt = context()->format();
+    QOpenGLFramebufferObjectFormat fboFmt;
+    fboFmt.setAttachment(QOpenGLFramebufferObjectFormat::Depth);
+    // Intel HD 3000 driver doesn't like the multisampling mode that Qt 4.8 uses
+    // for samples==1, so work around it by forcing 0, if possible
+    fboFmt.setSamples(fmt.samples() > 1 ? fmt.samples() : 0);
+    //fboFmt.setTextureTarget();
+    std::unique_ptr<QOpenGLFramebufferObjectFormat> fbo;
+    fbo.reset(new QOpenGLFramebufferObjectFormat(w, h, fboFmt));
+    if (fbo.get() && fbo->attachment()==QOpenGLFramebufferObjectFormat::NoAttachment)
+        g_logger.error("%s", "Failed to attach FBO depth buffer.");
+    return fbo;
+}
+#endif
 
 
 void View3D::paintGL()

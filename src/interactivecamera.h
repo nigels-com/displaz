@@ -13,10 +13,17 @@
 #endif
 #include <cmath>
 
-#include <QtGui/QQuaternion>
-#include <QtGui/QVector3D>
-#include <QtGui/QMatrix4x4>
-#include <QtCore/QRect>
+#ifdef DISPLAZ_USE_QT4
+    #include <QtGui/QQuaternion>
+    #include <QtGui/QVector3D>
+    #include <QtGui/QMatrix4x4>
+    #include <QtCore/QRect>
+#else
+    #include <QQuaternion>
+    #include <QVector3D>
+    #include <QMatrix4x4>
+    #include <QRect>
+#endif
 
 #include <OpenEXR/ImathVec.h>
 #include <OpenEXR/ImathMatrix.h>

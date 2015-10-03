@@ -7,13 +7,21 @@
 #include <vector>
 #include <memory>
 
-#include <QtCore/QString>
-#include <QtCore/QMetaType>
+#ifdef DISPLAZ_USE_QT4
+    #include <QtCore/QString>
+    #include <QtCore/QMetaType>
+#else
+    #include <QString>
+    #include <QMetaType>
+#endif
 
 #include "geometry.h"
 
-class QGLShaderProgram;
-
+#ifdef DISPLAZ_USE_QT4
+    class QGLShaderProgram;
+#else
+    class QOpenGLShaderProgram;
+#endif
 
 /// Mesh of triangles or line segment edges, in indexed format for OpenGL
 class TriMesh : public Geometry
@@ -21,10 +29,17 @@ class TriMesh : public Geometry
     public:
         virtual bool loadFile(QString fileName, size_t maxVertexCount);
 
+#ifdef DISPLAZ_USE_QT4
         virtual void drawFaces(QGLShaderProgram& prog,
                                const TransformState& transState) const;
         virtual void drawEdges(QGLShaderProgram& prog,
                                const TransformState& transState) const;
+#else
+        virtual void drawFaces(QOpenGLShaderProgram& prog,
+                               const TransformState& transState) const;
+        virtual void drawEdges(QOpenGLShaderProgram& prog,
+                               const TransformState& transState) const;
+#endif
 
         virtual size_t pointCount() const { return 0; }
 

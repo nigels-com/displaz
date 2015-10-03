@@ -7,9 +7,13 @@
 #include "dragspinbox.h"
 #include "qtlogger.h"
 
-#include <QtGui/QFormLayout>
-#include <QtGui/QComboBox>
-
+#ifdef DISPLAZ_USE_QT4
+    #include <QtGui/QFormLayout>
+    #include <QtGui/QComboBox>
+#else
+    #include <QFormLayout>
+    #include <QComboBox>
+#endif
 
 /// Make shader #define flags for hardware or driver-dependent blacklisted
 /// features.  Current list:
@@ -47,8 +51,13 @@ bool Shader::compileSourceCode(const QByteArray& src)
     QByteArray defines;
     switch (m_shader.shaderType())
     {
+#ifdef DISPLAZ_USE_QT4
         case QGLShader::Vertex:   defines += "#define VERTEX_SHADER\n";   break;
         case QGLShader::Fragment: defines += "#define FRAGMENT_SHADER\n"; break;
+#else
+        case QOpenGLShader::Vertex:   defines += "#define VERTEX_SHADER\n";   break;
+        case QOpenGLShader::Fragment: defines += "#define FRAGMENT_SHADER\n"; break;
+#endif
     }
     defines += makeBlacklistDefines();
     QByteArray modifiedSrc = src;
@@ -78,7 +87,11 @@ bool Shader::compileSourceCode(const QByteArray& src)
     {
         if (!re.exactMatch(lines[lineIdx]))
             continue;
+#ifdef DISPLAZ_USE_QT4
         QByteArray typeStr = re.cap(1).toAscii();
+#else
+        QByteArray typeStr = re.cap(1).toLatin1();
+#endif
         QVariant defaultValue;
         ShaderParam::Type type;
         if (typeStr == "float")
@@ -98,7 +111,12 @@ bool Shader::compileSourceCode(const QByteArray& src)
         }
         else
             continue;
+
+#ifdef DISPLAZ_USE_QT4
         ShaderParam param(type, re.cap(2).toAscii(), defaultValue);
+#else
+        ShaderParam param(type, re.cap(2).toLatin1(), defaultValue);
+#endif
         QMap<QString, QString>& kvPairs = param.kvPairs;
         QStringList pairList = re.cap(4).split(';');
         for (int i = 0; i < pairList.size(); ++i)
@@ -135,6 +153,7 @@ bool Shader::compileSourceCode(const QByteArray& src)
 
 //------------------------------------------------------------------------------
 // ShaderProgram implementation
+#ifdef DISPLAZ_USE_QT4
 ShaderProgram::ShaderProgram(const QGLContext * context, QObject* parent)
     : QObject(parent),
     m_context(context),
@@ -143,7 +162,16 @@ ShaderProgram::ShaderProgram(const QGLContext * context, QObject* parent)
     m_contrast(1),
     m_selector(0)
 { }
-
+#else
+ShaderProgram::ShaderProgram(const QOpenGLContext * context, QObject* parent)
+        : QObject(parent),
+          m_context(context),
+          m_pointSize(5),
+          m_exposure(1),
+          m_contrast(1),
+          m_selector(0)
+{ }
+#endif
 
 bool paramOrderingLess(const QPair<ShaderParam,QVariant>& p1,
                        const QPair<ShaderParam,QVariant>& p2)
@@ -240,22 +268,41 @@ bool ShaderProgram::setShaderFromSourceFile(QString fileName)
 
 bool ShaderProgram::setShader(QString src)
 {
+#ifdef DISPLAZ_USE_QT4
     std::unique_ptr<Shader> vertexShader(new Shader(QGLShader::Fragment, m_context));
     std::unique_ptr<Shader> fragmentShader(new Shader(QGLShader::Vertex, m_context));
+#else
+    std::unique_ptr<Shader> vertexShader(new Shader(QOpenGLShader::Fragment, m_context));
+    std::unique_ptr<Shader> fragmentShader(new Shader(QOpenGLShader::Vertex, m_context));
+#endif
     //tfm::printf("Shader source:\n###\n%s\n###\n", src.toStdString());
+
+#ifdef DISPLAZ_USE_QT4
     if(!vertexShader->compileSourceCode(src.toAscii()))
+#else
+    if(!vertexShader->compileSourceCode(src.toLatin1()))
+#endif
     {
         g_logger.error("Could not compile shader:\n%s",
                        vertexShader->shader()->log().toStdString());
         return false;
     }
+
+#ifdef DISPLAZ_USE_QT4
     if(!fragmentShader->compileSourceCode(src.toAscii()))
+#else
+    if(!fragmentShader->compileSourceCode(src.toLatin1()))
+#endif
     {
         g_logger.error("Could not compile shader:\n%s",
                        fragmentShader->shader()->log().toStdString());
         return false;
     }
+#ifdef DISPLAZ_USE_QT4
     std::unique_ptr<QGLShaderProgram> newProgram(new QGLShaderProgram(m_context));
+#else
+    std::unique_ptr<QOpenGLShaderProgram> newProgram(new QOpenGLShaderProgram(m_context));
+#endif
     if (!newProgram->addShader(vertexShader->shader()) ||
         !newProgram->addShader(fragmentShader->shader()))
     {
@@ -285,7 +332,11 @@ void ShaderProgram::setUniformValue(double value)
     {
         // Detect which uniform we're setting based on the sender's
         // name... ick!
+#ifdef DISPLAZ_USE_QT4
         ShaderParam key(ShaderParam::Float, sender()->objectName().toAscii());
+#else
+        ShaderParam key(ShaderParam::Float, sender()->objectName().toLatin1());
+#endif
         ParamMap::iterator i = m_params.find(key);
         if (i == m_params.end())
         {
@@ -304,7 +355,11 @@ void ShaderProgram::setUniformValue(int value)
     {
         // Detect which uniform we're setting based on the sender's
         // name... ick!
+#ifdef DISPLAZ_USE_QT4
         ShaderParam key(ShaderParam::Int, sender()->objectName().toAscii());
+#else
+        ShaderParam key(ShaderParam::Int, sender()->objectName().toLatin1());
+#endif
         ParamMap::iterator i = m_params.find(key);
         if (i == m_params.end())
         {
@@ -374,8 +429,11 @@ void ShaderProgram::setUniforms()
     }
 }
 
-
+#ifdef DISPLAZ_USE_QT4
 void ShaderProgram::setContext(const QGLContext* context)
+#else
+void ShaderProgram::setContext(const QOpenGLContext* context)
+#endif
 {
     m_context = context;
     setShader(shaderSource());

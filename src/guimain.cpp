@@ -3,10 +3,17 @@
 
 #include "mainwindow.h"
 
-//#include <QtCore/QDataStream>
-#include <QtCore/QTextCodec>
-#include <QtGui/QApplication>
-#include <QtOpenGL/QGLFormat>
+#ifdef DISPLAZ_USE_QT4
+    //#include <QtCore/QDataStream>
+    #include <QtCore/QTextCodec>
+    #include <QtGui/QApplication>
+    #include <QtOpenGL/QGLFormat>
+#else
+    //#include <QDataStream>
+    #include <QTextCodec>
+    #include <QApplication>
+    #include <QSurfaceFormat>
+#endif
 
 #include "argparse.h"
 #include "config.h"
@@ -70,9 +77,17 @@ int main(int argc, char* argv[])
     // Multisampled antialiasing - this makes rendered point clouds look much
     // nicer, but also makes the render much slower, especially on lower
     // powered graphics cards.
+#ifdef DISPLAZ_USE_QT4
     //QGLFormat f = QGLFormat::defaultFormat();
     //f.setSampleBuffers(true);
     //QGLFormat::setDefaultFormat(f);
+#else
+    QSurfaceFormat f = QSurfaceFormat::defaultFormat();
+    f.setVersion(3, 2);
+    f.setProfile(QSurfaceFormat::CoreProfile);
+    //f.setSampleBuffers(true);
+    QSurfaceFormat::setDefaultFormat(f);
+#endif
 
     PointViewerMainWindow window;
     InterProcessLock instanceLock(lockName);

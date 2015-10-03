@@ -13,7 +13,11 @@
 #include "typespec.h"
 #include "geomfield.h"
 
-class QGLShaderProgram;
+#ifdef DISPLAZ_USE_QT4
+    class QGLShaderProgram;
+#else
+    class QOpenGLShaderProgram;
+#endif
 
 struct OctreeNode;
 struct TransformState;
@@ -31,9 +35,15 @@ class PointArray : public Geometry
         // Overridden Geometry functions
         virtual bool loadFile(QString fileName, size_t maxVertexCount);
 
+#ifdef DISPLAZ_USE_QT4
         virtual DrawCount drawPoints(QGLShaderProgram& prog,
                                     const TransformState& transState,
                                     double quality, bool incrementalDraw) const;
+#else
+        virtual DrawCount drawPoints(QOpenGLShaderProgram& prog,
+                                     const TransformState& transState,
+                                     double quality, bool incrementalDraw) const;
+#endif
 
         virtual size_t pointCount() const { return m_npoints; }
 

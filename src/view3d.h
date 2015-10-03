@@ -8,8 +8,16 @@
 #include <vector>
 #include <memory>
 
-#include <GL/glew.h>
-#include <QGLWidget>
+#ifdef DISPLAZ_USE_QT4
+    #include <GL/glew.h>
+    #include <QGLWidget>
+#else
+    #include <QOpenGLFunctions_3_2_Core>
+    #include <QOpenGLWidget>
+#endif
+
+#endif
+
 #include <QModelIndex>
 
 #include "DrawCostModel.h"
@@ -17,8 +25,13 @@
 #include "geometrycollection.h"
 #include "glutil.h"
 
-class QGLShaderProgram;
-class QGLFramebufferObject;
+#ifdef DISPLAZ_USE_QT4
+    class QGLShaderProgram;
+    class QGLFramebufferObject;
+#else
+    class QOpenGLShaderProgram;
+    class QOpenGLFramebufferObject;
+#endif
 class QItemSelectionModel;
 class QTimer;
 
@@ -27,7 +40,11 @@ struct TransformState;
 
 //------------------------------------------------------------------------------
 /// OpenGL-based viewer widget for point clouds
+#ifdef DISPLAZ_USE_QT4
 class View3D : public QGLWidget
+#else
+class View3D : public QOpenGLWidget
+#endif
 {
     Q_OBJECT
     public:
@@ -80,7 +97,11 @@ class View3D : public QGLWidget
         void geometryInserted(const QModelIndex&, int firstRow, int lastRow);
 
     private:
+#ifdef DISPLAZ_USE_QT4
         std::unique_ptr<QGLFramebufferObject> allocIncrementalFramebuffer(int w, int h) const;
+#else
+        std::unique_ptr<QOpenGLFramebufferObject> allocIncrementalFramebuffer(int w, int h) const;
+#endif
 
         void drawCursor(const TransformState& transState, const V3d& P,
                         float cursorRadius, float centerPointRadius) const;
@@ -129,7 +150,11 @@ class View3D : public QGLWidget
         QWidget* m_shaderParamsUI;
         /// Timer for next incremental frame
         QTimer* m_incrementalFrameTimer;
+#ifdef DISPLAZ_USE_QT4
         std::unique_ptr<QGLFramebufferObject> m_incrementalFramebuffer;
+#else
+        std::unique_ptr<QOpenGLFramebufferObject> m_incrementalFramebuffer;
+#endif
         bool m_incrementalDraw;
         /// Controller for amount of geometry to draw
         DrawCostModel m_drawCostModel;

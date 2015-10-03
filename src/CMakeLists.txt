@@ -2,13 +2,15 @@ project(viewer)
 
 include_directories(BEFORE
     ../thirdparty
-    ${GLEW_INCLUDE_DIR}
     ${OPENGL_INCLUDE_DIR}
     ${THIRDPARTY_INSTALL_DIR}/include
 )
 
 if(DISPLAZ_USE_QT4)
-    include_directories(${QT_INCLUDES})
+    include_directories(
+        ${QT_INCLUDES}
+        ${GLEW_INCLUDE_DIR}
+    )
 else()
     include_directories(
         ${Qt5Core_INCLUDE_DIRS}
@@ -170,7 +172,7 @@ else()
     target_link_libraries(displaz-gui
         ${Qt5Core_LIBRARIES} ${Qt5Gui_LIBRARIES} ${Qt5OpenGL_LIBRARIES}
         ${Qt5Network_LIBRARIES} ${Qt5Widgets_LIBRARIES}
-        ${OPENGL_gl_LIBRARY} ${GLEW_LIBRARIES}
+        ${OPENGL_gl_LIBRARY}
         ${ILMBASE_LIBRARIES}
     )
 endif()

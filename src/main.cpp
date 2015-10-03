@@ -1,12 +1,21 @@
 // Copyright 2015, Christopher J. Foster and the other displaz contributors.
 // Use of this code is governed by the BSD-style license found in LICENSE.txt
 
-//#include <QtCore/QDataStream>
-#include <QtCore/QCoreApplication>
-#include <QtCore/QDir>
-#include <QtCore/QProcess>
-#include <QtCore/QTextCodec>
-#include <QtCore/QUuid>
+#ifdef DISPLAZ_USE_QT4
+    //#include <QtCore/QDataStream>
+    #include <QtCore/QCoreApplication>
+    #include <QtCore/QDir>
+    #include <QtCore/QProcess>
+    #include <QtCore/QTextCodec>
+    #include <QtCore/QUuid>
+#else
+    //#include <QDataStream>
+    #include <QCoreApplication>
+    #include <QDir>
+    #include <QProcess>
+    #include <QTextCodec>
+    #include <QUuid>
+#endif
 
 #include "argparse.h"
 #include "config.h"

@@ -5,8 +5,13 @@
 #ifndef DISPLAZ_MAINWINDOW_H_INCLUDED
 #define DISPLAZ_MAINWINDOW_H_INCLUDED
 
-#include <QtCore/QDir>
-#include <QtGui/QMainWindow>
+#ifdef DISPLAZ_USE_QT4
+    #include <QtCore/QDir>
+    #include <QtGui/QMainWindow>
+#else
+    #include <QDir>
+    #include <QMainWindow>
+#endif
 
 #include <memory>
 

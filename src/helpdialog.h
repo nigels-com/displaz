@@ -4,10 +4,17 @@
 #ifndef HELP_DIALOG_H_INCLUDED
 #define HELP_DIALOG_H_INCLUDED
 
-#include <QtCore/QFile>
-#include <QtGui/QDialog>
-#include <QtGui/QTextEdit>
-#include <QtGui/QGridLayout>
+#ifdef DISPLAZ_USE_QT4
+    #include <QtCore/QFile>
+    #include <QtGui/QDialog>
+    #include <QtGui/QTextEdit>
+    #include <QtGui/QGridLayout>
+#else
+    #include <QFile>
+    #include <QDialog>
+    #include <QTextEdit>
+    #include <QGridLayout>
+#endif
 
 /// A very simple help dialog, which reads the text or generated html README
 /// documentation from the installed doc directory.

@@ -4,7 +4,11 @@
 #ifndef GLUTIL_H_INCLUDED
 #define GLUTIL_H_INCLUDED
 
-#include <GL/glew.h>
+#ifdef DISPLAZ_USE_QT4
+    #include <GL/glew.h>
+#else
+    #include <QOpenGLFunctions_3_2_Core>
+#endif
 
 #include <QImage>
 

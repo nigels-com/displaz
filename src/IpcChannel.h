@@ -3,10 +3,15 @@
 
 #include <memory>
 
-#include <QtCore/QDataStream>
-#include <QtCore/QByteArray>
-#include <QtNetwork/QLocalSocket>
-
+#ifdef DISPLAZ_USE_QT4
+    #include <QtCore/QDataStream>
+    #include <QtCore/QByteArray>
+    #include <QtNetwork/QLocalSocket>
+#else
+    #include <QDataStream>
+    #include <QByteArray>
+    #include <QLocalSocket>
+#endif
 
 /// Communication channel for local message-based IPC
 ///

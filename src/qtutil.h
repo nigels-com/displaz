@@ -4,8 +4,13 @@
 #ifndef QT_UTIL_H_INCLUDED
 #define QT_UTIL_H_INCLUDED
 
-#include <QtCore/QByteArray>
-#include <QtCore/QString>
+#ifdef DISPLAZ_USE_QT4
+    #include <QtCore/QByteArray>
+    #include <QtCore/QString>
+#else
+    #include <QByteArray>
+    #include <QString>
+#endif
 
 /// Print QByteArray to std stream as raw data
 inline std::ostream& operator<<(std::ostream& out, const QByteArray& s)

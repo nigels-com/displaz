@@ -7,8 +7,13 @@
 
 #include "glutil.h"
 
-#include <QtOpenGL/QGLShaderProgram>
-#include <QtCore/QTime>
+#ifdef DISPLAZ_USE_QT4
+    #include <QtOpenGL/QGLShaderProgram>
+    #include <QtCore/QTime>
+#else
+    #include <QOpenGLShaderProgram>
+    #include <QTime>
+#endif
 
 #include <unordered_map>
 #include <fstream>
@@ -542,9 +547,13 @@ void PointArray::drawTree(const TransformState& transState) const
     ::drawTree(transState, m_rootNode.get());
 }
 
-
+#ifdef DISPLAZ_USE_QT4
 DrawCount PointArray::drawPoints(QGLShaderProgram& prog, const TransformState& transState,
                                  double quality, bool incrementalDraw) const
+#else
+DrawCount PointArray::drawPoints(QOpenGLShaderProgram& prog, const TransformState& transState,
+                                 double quality, bool incrementalDraw) const
+#endif
 {
     TransformState relativeTrans = transState.translate(offset());
     relativeTrans.setUniforms(prog.programId());

@@ -24,6 +24,10 @@ option(DISPLAZ_BUILD_DVOX "Build experimential dvox utility" FALSE)
 option(DISPLAZ_EMBED_GLEW "Build GLEW as part of the displaz build process" TRUE)
 option(DISPLAZ_USE_QT4 "Build with Qt4" FALSE)
 
+if(DISPLAZ_USE_QT4)
+    set(DISPLAZ_EMBED_GLEW FALSE) #no need for GLEW with Qt5
+endif()
+
 set(DISPLAZ_EXTERNAL_DIR "${PROJECT_BINARY_DIR}/../build_external/dist"
     CACHE PATH "Directory containing installed third party libraries (laslib, ilmbase, ...)")
 
@@ -65,14 +69,16 @@ if (DISPLAZ_USE_LAS)
     endif()
 endif()
 
-if (DISPLAZ_EMBED_GLEW)
-    add_definitions(-DGLEW_STATIC)
-    set(GLEW_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/glew)
-    include_directories(BEFORE ${GLEW_INCLUDE_DIR})
-    add_library(embeddedGLEW STATIC thirdparty/glew/glew.c)
-    set(GLEW_LIBRARIES embeddedGLEW)
-else()
-    find_package(GLEW)
+if (DISPLAZ_USE_QT4)
+    if (DISPLAZ_EMBED_GLEW)
+        add_definitions(-DGLEW_STATIC)
+        set(GLEW_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/glew)
+        include_directories(BEFORE ${GLEW_INCLUDE_DIR})
+        add_library(embeddedGLEW STATIC thirdparty/glew/glew.c)
+        set(GLEW_LIBRARIES embeddedGLEW)
+    else()
+        find_package(GLEW)
+    endif()
 endif()
 
 find_package(OpenGL REQUIRED)
