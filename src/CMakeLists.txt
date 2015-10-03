@@ -249,7 +249,11 @@ if (DISPLAZ_USE_TESTS)
 
     # Interprocess tests require special purpose executables
     add_executable(InterProcessLock_test InterProcessLock_test.cpp util.cpp InterProcessLock.cpp)
-    target_link_libraries(InterProcessLock_test ${QT_QTCORE_LIBRARY})
-    add_test(NAME InterProcessLock_test COMMAND InterProcessLock_test master)
+    if(DISPLAZ_USE_QT4)
+        target_link_libraries(InterProcessLock_test ${QT_QTCORE_LIBRARY})
+    else()
+        target_link_libraries(InterProcessLock_test ${Qt5Core_LIBRARIES})
+    endif()
+    add_test(InterProcessLock_test InterProcessLock_test master)
 endif()
 
