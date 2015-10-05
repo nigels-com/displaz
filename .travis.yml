@@ -1,15 +1,15 @@
 language: cpp
 script:
-- cmake --version
+#- cmake --version
 # Build external tools
-- pwd
+#- pwd
 - mkdir build_external
 - cd build_external
 - cmake ../thirdparty/external
 - make -j4
 - cd ..
 # Build displaz
-- pwd
+#- pwd
 - mkdir build
 - cd build
 - cmake ..
