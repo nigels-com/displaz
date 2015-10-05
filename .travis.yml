@@ -16,4 +16,7 @@ script:
 - make -j4
 - cd ..
 install:
- - sudo apt-get install git g++ cmake libqt4-dev libqt4-opengl-dev python-docutils
+ - sudo apt-get install wget git g++ cmake libqt4-dev libqt4-opengl-dev python-docutils
+ - wget https://launchpad.net/~kalakris/+archive/ubuntu/cmake/+build/4892863/+files/cmake_2.8.11.2-1ubuntu2~precise1_amd64.deb
+ - wget https://launchpad.net/~kalakris/+archive/ubuntu/cmake/+files/cmake-data_2.8.11.2-1ubuntu2~precise1_all.deb
+ - sudo dpkg -i cmake_2.8.11.2-1ubuntu2~precise1_amd64.deb cmake-data_2.8.11.2-1ubuntu2~precise1_all.deb
