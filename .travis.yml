@@ -1,0 +1,19 @@
+language: cpp
+script:
+- cmake --version
+# Build external tools
+- pwd
+- mkdir build_external
+- cd build_external
+- cmake ../thirdparty/external
+- make -j4
+- cd ..
+# Build displaz
+- pwd
+- mkdir build
+- cd build
+- cmake ..
+- make -j4
+- cd ..
+install:
+ - sudo apt-get install git g++ cmake libqt4-dev libqt4-opengl-dev python-docutils

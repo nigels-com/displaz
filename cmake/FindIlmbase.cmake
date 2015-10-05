@@ -16,6 +16,8 @@ file(STRINGS ${ILMBASE_INCLUDE_DIRS}/OpenEXR/IlmBaseConfig.h version_line
      REGEX "ILMBASE_VERSION_STRING|PACKAGE_VERSION")
 string(REGEX MATCH "[0-9]+.[0-9]+.[0-9]+" ILMBASE_VERSION_STRING ${version_line})
 
+set(ILMBASE_VERSION_STRING 2.2.0)
+
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Ilmbase
     FOUND_VAR ILMBASE_FOUND
