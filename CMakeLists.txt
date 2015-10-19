@@ -9,7 +9,7 @@ set(CMAKE_BUILD_TYPE "Release" CACHE STRING
 )
 
 if(NOT WIN32)
-    set(CMAKE_CXX_FLAGS "-Wall -std=c++0x" CACHE STRING "Flags used by the compiler during all build types.")
+    set(CMAKE_CXX_FLAGS "-fPIC -Wall -std=c++0x" CACHE STRING "Flags used by the compiler during all build types.")
 endif()
 
 project(displaz)
@@ -24,9 +24,9 @@ option(DISPLAZ_BUILD_DVOX "Build experimential dvox utility" FALSE)
 option(DISPLAZ_EMBED_GLEW "Build GLEW as part of the displaz build process" TRUE)
 option(DISPLAZ_USE_QT4 "Build with Qt4" FALSE)
 
-if(DISPLAZ_USE_QT4)
-    set(DISPLAZ_EMBED_GLEW FALSE) #no need for GLEW with Qt5
-endif()
+#if(DISPLAZ_USE_QT4)
+#    set(DISPLAZ_EMBED_GLEW FALSE) #no need for GLEW with Qt5
+#endif()
 
 set(DISPLAZ_EXTERNAL_DIR "${PROJECT_BINARY_DIR}/../build_external/dist"
     CACHE PATH "Directory containing installed third party libraries (laslib, ilmbase, ...)")
@@ -69,7 +69,7 @@ if (DISPLAZ_USE_LAS)
     endif()
 endif()
 
-if (DISPLAZ_USE_QT4)
+#if (DISPLAZ_USE_QT4)
     if (DISPLAZ_EMBED_GLEW)
         add_definitions(-DGLEW_STATIC)
         set(GLEW_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/thirdparty/glew)
@@ -79,7 +79,7 @@ if (DISPLAZ_USE_QT4)
     else()
         find_package(GLEW)
     endif()
-endif()
+#endif()
 
 find_package(OpenGL REQUIRED)
 

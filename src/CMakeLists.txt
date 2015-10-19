@@ -172,7 +172,7 @@ else()
     target_link_libraries(displaz-gui
         ${Qt5Core_LIBRARIES} ${Qt5Gui_LIBRARIES} ${Qt5OpenGL_LIBRARIES}
         ${Qt5Network_LIBRARIES} ${Qt5Widgets_LIBRARIES}
-        ${OPENGL_gl_LIBRARY}
+        ${OPENGL_gl_LIBRARY} ${GLEW_LIBRARIES}
         ${ILMBASE_LIBRARIES}
     )
 endif()

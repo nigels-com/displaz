@@ -5,6 +5,8 @@
 #ifndef DISPLAZ_MAINWINDOW_H_INCLUDED
 #define DISPLAZ_MAINWINDOW_H_INCLUDED
 
+#include "glutil.h"
+
 #ifdef DISPLAZ_USE_QT4
     #include <QtCore/QDir>
     #include <QtGui/QMainWindow>

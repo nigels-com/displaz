@@ -3,6 +3,8 @@
 
 #include "hcloudview.h"
 
+#include "glutil.h"
+
 #ifndef DISPLAZ_USE_QT4
     #include <QOpenGLContext>
 #endif
@@ -139,7 +141,7 @@ bool HCloudView::loadFile(QString fileName, size_t maxVertexCount)
 
 void HCloudView::initializeGL()
 {
-#ifdef DISPLAZ_USE_QT4
+#if 0
     m_shader.reset(new ShaderProgram(QGLContext::currentContext()));
 #else
     m_shader.reset(new ShaderProgram(QOpenGLContext::currentContext()));

@@ -21,7 +21,7 @@
     #include <QItemSelectionModel>
     #include <QOpenGLFramebufferObject>
     #include <QMessageBox>
-    //#include <QOpenGLBuffer>
+//    #include <QOpenGLContext>
 #endif
 
 #include "config.h"
@@ -207,7 +207,7 @@ void View3D::centerOnGeometry(const QModelIndex& index)
 
 void View3D::initializeGL()
 {
-#ifdef DISPLAZ_USE_QT4
+#if 1
     if (glewInit() != GLEW_OK)
     {
         g_logger.error("%s", "Failed to initialize GLEW");
@@ -230,7 +230,7 @@ void View3D::initializeGL()
     }
     else {
         funcs->initializeOpenGLFunctions();
-
+#endif
         //makeCurrent();
         m_shaderProgram.reset(new ShaderProgram(context()));
         connect(m_shaderProgram.get(), SIGNAL(uniformValuesChanged()),
@@ -241,6 +241,7 @@ void View3D::initializeGL()
                 this, SLOT(setupShaderParamUI()));
 
         m_shaderProgram->setShaderFromSourceFile("shaders:las_points.glsl");
+#if 0
     }
 
     //initializeOpenGLFunctions();
@@ -273,7 +274,7 @@ void View3D::resizeGL(int w, int h)
 }
 
 
-#ifdef DISPLAZ_USE_QT4
+#if 0
 std::unique_ptr<QGLFramebufferObject> View3D::allocIncrementalFramebuffer(int w, int h) const
 {
     // TODO:
@@ -296,7 +297,7 @@ std::unique_ptr<QOpenGLFramebufferObject> View3D::allocIncrementalFramebuffer(in
 {
     // TODO:
     // * Should we use multisampling 1 to avoid binding to a texture?
-    const QSurfaceFormat fmt = context()->format();
+    const QSurfaceFormat fmt; //  = context()->format();
     QOpenGLFramebufferObjectFormat fboFmt;
     fboFmt.setAttachment(QOpenGLFramebufferObject::Depth);
     // Intel HD 3000 driver doesn't like the multisampling mode that Qt 4.8 uses

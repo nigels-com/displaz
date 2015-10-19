@@ -8,11 +8,13 @@
 #include <vector>
 #include <memory>
 
+#include "glutil.h"
+
 #ifdef DISPLAZ_USE_QT4
     #include <GL/glew.h>
     #include <QGLWidget>
 #else
-    #include <QOpenGLFunctions_3_2_Core>
+    //#include <QOpenGLFunctions_3_2_Core>
     //#include <QOpenGLFunctions>
     #include <QOpenGLWidget>
 #endif
