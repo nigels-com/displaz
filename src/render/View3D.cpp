@@ -37,12 +37,14 @@ View3D::View3D(GeometryCollection* geometries, const QGLFormat& format, QWidget 
     m_drawCursor(true),
     m_drawAxes(true),
     m_drawGrid(false),
+    m_drawOutlines(true),
     m_drawAnnotations(true),
     m_badOpenGL(false),
     m_shaderProgram(),
     m_geometries(geometries),
     m_selectionModel(0),
     m_shaderParamsUI(0),
+    m_outlineShaderParamsUI(0),
     m_incrementalFrameTimer(0),
     m_incrementalFramebuffer(),
     m_incrementalDraw(false),
@@ -145,6 +147,12 @@ void View3D::setShaderParamsUIWidget(QWidget* widget)
 }
 
 
+void View3D::setOutlineShaderParamsUIWidget(QWidget* widget)
+{
+    m_outlineShaderParamsUI = widget;
+}
+
+
 void View3D::setupShaderParamUI()
 {
     if (!m_shaderProgram || !m_shaderParamsUI)
@@ -153,6 +161,17 @@ void View3D::setupShaderParamUI()
         delete child;
     delete m_shaderParamsUI->layout();
     m_shaderProgram->setupParameterUI(m_shaderParamsUI);
+}
+
+
+void View3D::setupOutlineShaderParamUI()
+{
+    if (!m_outlineShader || !m_outlineShaderParamsUI)
+        return;
+    while (QWidget* child = m_outlineShaderParamsUI->findChild<QWidget*>())
+        delete child;
+    delete m_outlineShaderParamsUI->layout();
+    m_outlineShader->setupParameterUI(m_outlineShaderParamsUI);
 }
 
 
@@ -214,6 +233,12 @@ void View3D::toggleDrawBoundingBoxes()
 void View3D::toggleDrawCursor()
 {
     m_drawCursor = !m_drawCursor;
+    restartRender();
+}
+
+void View3D::toggleDrawOutlines()
+{
+    m_drawOutlines = !m_drawOutlines;
     restartRender();
 }
 
@@ -296,6 +321,7 @@ void View3D::initializeGL()
     // GL_CHECK has to be defined for this to actually do something
     glCheckError();
 
+    initOutlines();
     initCursor(10, 1);
     initAxes();
     initGrid(2.0f);
@@ -433,6 +459,10 @@ void View3D::paintGL()
     glBindFramebuffer(GL_READ_FRAMEBUFFER, m_incrementalFramebuffer.id());
     glBlitFramebuffer(0,0,w,h, 0,0,w,h,
                       GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST); // has to be GL_NEAREST to work with DEPTH
+
+    // Draw depth outlines
+    if (m_drawOutlines)
+        drawOutlines();
 
     // Draw a grid for orientation purposes
     if (m_drawGrid)
@@ -595,6 +625,52 @@ void View3D::keyPressEvent(QKeyEvent *event)
         event->ignore();
 }
 
+void View3D::initOutlines()
+{
+    m_outlineShader.reset(new ShaderProgram());
+    if (!m_outlineShader->setShaderFromSourceFile("shaders:outline.glsl"))
+    {
+        g_logger.error("Could not read outline shader");
+        return;
+    }
+
+    connect(m_outlineShader.get(), SIGNAL(uniformValuesChanged()),
+            this, SLOT(restartRender()));
+    connect(m_outlineShader.get(), SIGNAL(shaderChanged()),
+            this, SLOT(restartRender()));
+    connect(m_outlineShader.get(), SIGNAL(paramsChanged()),
+            this, SLOT(setupOutlineShaderParamUI()));
+    setupOutlineShaderParamUI();
+
+    float screenQuad[] = { -1.0f, -1.0f, 0.0f, 0.0f,
+                         1.0f, -1.0f, 1.0f, 0.0f,
+                         1.0f, 1.0f, 1.0f, 1.0f,
+                         -1.0f, -1.0f, 0.0f, 0.0f,
+                         1.0f, 1.0f, 1.0f, 1.0f,
+                         -1.0f, 1.0f, 0.0f, 1.0f };
+
+    glGenVertexArrays(1, &m_outlineVertexArray);
+    glBindVertexArray(m_outlineVertexArray);
+
+    GLuint outlineQuadVertexBuffer;
+    glGenBuffers(1, &outlineQuadVertexBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, outlineQuadVertexBuffer);
+    glBufferData(GL_ARRAY_BUFFER, (2 + 2) * 6 * sizeof(float), screenQuad, GL_STATIC_DRAW);
+
+    GLint positionAttribute = glGetAttribLocation(m_outlineShader->shaderProgram().programId(), "position");
+
+    glVertexAttribPointer(positionAttribute, 2, GL_FLOAT, GL_FALSE, sizeof(float)*(2 + 2), (const GLvoid *)0);
+    glEnableVertexAttribArray(positionAttribute);
+
+    GLint texCoordAttribute = glGetAttribLocation(m_outlineShader->shaderProgram().programId(), "texCoord");
+
+    glVertexAttribPointer(texCoordAttribute, 2, GL_FLOAT, GL_FALSE, sizeof(float)*(2 + 2), (const GLvoid *)(sizeof(float)*2));
+    glEnableVertexAttribArray(texCoordAttribute);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+}
+
 void View3D::initCursor(float cursorRadius, float centerPointRadius)
 {
     float r1 = cursorRadius;
@@ -631,6 +707,39 @@ void View3D::initCursor(float cursorRadius, float centerPointRadius)
     glEnableVertexAttribArray(positionAttribute);
 
     glBindVertexArray(0);
+}
+
+/// Draw screen-space outline effect
+void View3D::drawOutlines() const
+{
+    glDisable(GL_DEPTH_TEST);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // Draw Background texture
+    if (m_outlineShader->isValid())
+    {
+        QGLShaderProgram& outlineShader = m_outlineShader->shaderProgram();
+        GLuint programId = outlineShader.programId();
+        GLint screenTexture = glGetUniformLocation(programId, "screenTexture");
+        GLint depthTexture = glGetUniformLocation(programId, "depthTexture");
+        GLint widthHeight = glGetUniformLocation(programId, "widthHeight");
+        // shader
+        outlineShader.bind();
+        m_outlineShader->setUniforms();
+        // uniforms
+        glUniform2f(widthHeight, width(), height());
+        // texture
+        m_incrementalFramebuffer.bindScreenTexture(screenTexture, 0);
+        m_incrementalFramebuffer.bindDepthTexture(depthTexture, 1);
+        // vertex buffer
+        glBindVertexArray(m_outlineVertexArray);
+        // draw
+        glDrawArrays( GL_TRIANGLES, 0, 6 );
+        // do NOT release shader, this is no longer supported in OpenGL 3.2
+        glBindVertexArray(0);
+    }
 }
 
 /// Draw the 3D cursor

@@ -167,6 +167,9 @@ PointViewerMainWindow::PointViewerMainWindow(const QGLFormat& format)
     QAction* drawAnnotations = viewMenu->addAction(tr("Draw A&nnotations"));
     drawAnnotations->setCheckable(true);
     drawAnnotations->setChecked(true);
+    QAction* drawOutlines = viewMenu->addAction(tr("Draw &Outlines"));
+    drawOutlines->setCheckable(true);
+    drawOutlines->setChecked(true);
 
     // Shader menu
     QMenu* shaderMenu = menuBar()->addMenu(tr("&Shader"));
@@ -203,6 +206,8 @@ PointViewerMainWindow::PointViewerMainWindow(const QGLFormat& format)
             m_pointView, SLOT(toggleDrawGrid()));
     connect(drawAnnotations, SIGNAL(triggered()),
             m_pointView, SLOT(toggleDrawAnnotations()));
+    connect(drawOutlines, SIGNAL(triggered()),
+            m_pointView, SLOT(toggleDrawOutlines()));
     connect(trackballMode, SIGNAL(triggered()),
             m_pointView, SLOT(toggleCameraMode()));
     connect(m_geometries, SIGNAL(rowsInserted(QModelIndex,int,int)),
@@ -217,6 +222,14 @@ PointViewerMainWindow::PointViewerMainWindow(const QGLFormat& format)
     QWidget* shaderParamsUI = new QWidget(shaderParamsDock);
     shaderParamsDock->setWidget(shaderParamsUI);
     m_pointView->setShaderParamsUIWidget(shaderParamsUI);
+
+    // Screen shader parameters UI
+    QDockWidget* outlineDockWidget= new QDockWidget(tr("Outline Shader Parameters"), this);
+    outlineDockWidget->setFeatures(QDockWidget::DockWidgetMovable |
+                                  QDockWidget::DockWidgetClosable);
+    QWidget* outlineShaderParamsUI = new QWidget(outlineDockWidget);
+    outlineDockWidget->setWidget(outlineShaderParamsUI);
+    m_pointView->setOutlineShaderParamsUIWidget(outlineShaderParamsUI);
 
     // Shader editor UI
     QDockWidget* shaderEditorDock = new QDockWidget(tr("Shader Editor"), this);
@@ -280,6 +293,7 @@ PointViewerMainWindow::PointViewerMainWindow(const QGLFormat& format)
 
     // Set up docked widgets
     addDockWidget(Qt::RightDockWidgetArea, shaderParamsDock);
+    addDockWidget(Qt::RightDockWidgetArea, outlineDockWidget);
     addDockWidget(Qt::LeftDockWidgetArea, shaderEditorDock);
     addDockWidget(Qt::RightDockWidgetArea, logDock);
     addDockWidget(Qt::RightDockWidgetArea, dataSetDock);
@@ -290,6 +304,7 @@ PointViewerMainWindow::PointViewerMainWindow(const QGLFormat& format)
     // Add dock widget toggles to view menu
     viewMenu->addSeparator();
     viewMenu->addAction(shaderParamsDock->toggleViewAction());
+    viewMenu->addAction(outlineDockWidget->toggleViewAction());
     viewMenu->addAction(logDock->toggleViewAction());
     viewMenu->addAction(dataSetDock->toggleViewAction());
 

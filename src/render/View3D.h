@@ -42,6 +42,7 @@ class View3D : public QGLWidget
         ShaderProgram& shaderProgram() const { return *m_shaderProgram; }
 
         void setShaderParamsUIWidget(QWidget* widget);
+        void setOutlineShaderParamsUIWidget(QWidget* widget);
 
         InteractiveCamera& camera() { return m_camera; }
 
@@ -66,6 +67,7 @@ class View3D : public QGLWidget
         void setBackground(QColor col);
         void toggleDrawBoundingBoxes();
         void toggleDrawCursor();
+        void toggleDrawOutlines();
         void toggleDrawAxes();
         void toggleDrawGrid();
         void toggleDrawAnnotations();
@@ -90,6 +92,7 @@ class View3D : public QGLWidget
     private slots:
         void restartRender();
         void setupShaderParamUI();
+        void setupOutlineShaderParamUI();
 
         void geometryChanged();
         void dataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight);
@@ -101,6 +104,9 @@ class View3D : public QGLWidget
 
         void initCursor(float cursorRadius, float centerPointRadius);
         void drawCursor(const TransformState& transState, const V3d& P, float centerPointRadius) const;
+
+        void initOutlines();
+        void drawOutlines() const;
 
         void initAxes();
         void drawAxes() const;
@@ -146,6 +152,7 @@ class View3D : public QGLWidget
         bool m_drawAxes;
         bool m_drawGrid;
         bool m_drawAnnotations;
+        bool m_drawOutlines;
         /// If true, OpenGL initialization didn't work properly
         bool m_badOpenGL;
         /// Shader for point clouds
@@ -159,6 +166,7 @@ class View3D : public QGLWidget
         QVector<std::shared_ptr<Annotation>> m_annotations;
         /// UI widget for shader
         QWidget* m_shaderParamsUI;
+        QWidget* m_outlineShaderParamsUI;
         /// Timer for next incremental frame
         QTimer* m_incrementalFrameTimer;
         Framebuffer m_incrementalFramebuffer;
@@ -173,6 +181,7 @@ class View3D : public QGLWidget
 
         /// Shaders for interface geometry
         std::unique_ptr<ShaderProgram> m_cursorShader;
+        std::unique_ptr<ShaderProgram> m_outlineShader;
         std::unique_ptr<ShaderProgram> m_axesShader;
         std::unique_ptr<ShaderProgram> m_gridShader;
         std::unique_ptr<ShaderProgram> m_axesBackgroundShader;
@@ -181,6 +190,7 @@ class View3D : public QGLWidget
         std::unique_ptr<ShaderProgram> m_annotationShader;
 
         unsigned int m_cursorVertexArray;
+        unsigned int m_outlineVertexArray;
         unsigned int m_axesVertexArray;
         unsigned int m_gridVertexArray;
         unsigned int m_quadVertexArray;
