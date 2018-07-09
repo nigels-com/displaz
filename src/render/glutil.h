@@ -217,7 +217,7 @@ class Framebuffer
     public:
         /// Generate an uninitialized framebuffer.
         Framebuffer()
-            : m_fbo(0), m_colorBuf(0), m_zBuf(0)
+            : m_fbo(0), m_screenTexture(0), m_depthTexture(0)
         { }
 
         ~Framebuffer()
@@ -233,31 +233,60 @@ class Framebuffer
             glGenFramebuffers(1, &m_fbo);
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo);
 
-            glGenRenderbuffers(1, &m_colorBuf);
-            glBindRenderbuffer(GL_RENDERBUFFER, m_colorBuf);
-            glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, width, height);
-            glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, m_colorBuf);
+            glGenTextures(1, &m_screenTexture);
+            glBindTexture(GL_TEXTURE_2D, m_screenTexture);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_BGRA, GL_UNSIGNED_BYTE, NULL);
 
-            glGenRenderbuffers(1, &m_zBuf);
-            glBindRenderbuffer(GL_RENDERBUFFER, m_zBuf);
-            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width, height);
-            glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_zBuf);
+            glGenTextures(1, &m_depthTexture);
+            glBindTexture(GL_TEXTURE_2D, m_depthTexture);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);
+
+            glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_screenTexture, 0);
+            glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_depthTexture, 0);
 
             glCheckFrameBufferStatus();
             glCheckError();
+        }
+
+        void bindScreenTexture(int samplerLocation, int textureUnit) const
+        {
+            glActiveTexture(GL_TEXTURE0 + textureUnit);
+            glBindTexture(GL_TEXTURE_2D, m_screenTexture);
+            if (samplerLocation >= 0)
+            {
+                glUniform1i(samplerLocation, textureUnit);
+            }
+        }
+
+        void bindDepthTexture(int samplerLocation, int textureUnit) const
+        {
+            glActiveTexture(GL_TEXTURE0 + textureUnit);
+            glBindTexture(GL_TEXTURE_2D, m_depthTexture);
+            if (samplerLocation >= 0)
+            {
+                glUniform1i(samplerLocation, textureUnit);
+            }
         }
 
         void destroy()
         {
             if (m_fbo != 0)
                 glDeleteFramebuffers(1, &m_fbo);
-            if (m_colorBuf != 0)
-                glDeleteRenderbuffers(1, &m_colorBuf);
-            if (m_zBuf != 0)
-                glDeleteRenderbuffers(1, &m_zBuf);
+            if (m_screenTexture != 0)
+                glDeleteTextures(1, &m_screenTexture);
+            if (m_depthTexture != 0)
+                glDeleteTextures(1, &m_depthTexture);
             m_fbo = 0;
-            m_colorBuf = 0;
-            m_zBuf = 0;
+            m_screenTexture = 0;
+            m_depthTexture = 0;
         }
 
         /// Get OpenGL identifier for the buffer
@@ -269,8 +298,8 @@ class Framebuffer
 
     private:
         GLuint m_fbo;
-        GLuint m_colorBuf;
-        GLuint m_zBuf;
+        GLuint m_screenTexture;
+        GLuint m_depthTexture;
 };
 
 
