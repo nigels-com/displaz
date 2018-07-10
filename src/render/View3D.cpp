@@ -740,6 +740,9 @@ void View3D::drawOutlines() const
         // do NOT release shader, this is no longer supported in OpenGL 3.2
         glBindVertexArray(0);
     }
+
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
 }
 
 /// Draw the 3D cursor
