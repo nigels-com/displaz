@@ -11,9 +11,10 @@ uniform mat4 modelViewProjectionMatrix;
 
 uniform float pointRadius = 0.1;    //# uiname=Point Radius; min=0.001; max=10
 uniform float trimRadius = 1000000; //# uiname=Trim Radius; min=1; max=1000000
-uniform float middle = 400.0;       //# uiname=Middle; min=0.01; max=100000
+uniform float bias = 0.0;           //# uiname=Bias; min=-1.00; max=1.0
 uniform float exposure = 1.0;       //# uiname=Exposure; min=0.01; max=10000
 uniform float contrast = 1.0;       //# uiname=Contrast; min=0.01; max=10000
+uniform float divisor = 400.0;      //# uiname=Divisor; min=0.001; max=100000
 uniform int colorMode = 0;          //# uiname=Colour Mode; enum=Intensity|Colour|Return Index|Point Source|Las Classification|File Number
 uniform int selectionMode = 0;      //# uiname=Selection; enum=All|Classified|First Return|Last Return|First Of Several
 uniform float minPointSize = 0;
@@ -37,11 +38,11 @@ flat out float pointScreenSize;
 flat out vec3 pointColor;
 flat out int markerShape;
 
-float tonemap(float x, float middle, float contrast)
+float tonemap(float x, float bias, float exposure, float contrast, float divisor)
 {
-    float Y = pow(x/middle, contrast);
+    float Y = exposure*pow(x/divisor, contrast);
     Y = Y / (1.0 + Y);
-    return Y;
+    return Y + bias;
 }
 
 vec3 jet_colormap(float x)
@@ -68,7 +69,7 @@ void main()
     markerShape = 1;
     // Compute vertex color
     if (colorMode == 0)
-        pointColor = tonemap(intensity, middle, contrast) * vec3(1);
+        pointColor = tonemap(intensity, bias, exposure, contrast, divisor) * vec3(1);
     else if (colorMode == 1)
         pointColor = contrast*(exposure*color - vec3(0.5)) + vec3(0.5);
     else if (colorMode == 2)
