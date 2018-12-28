@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop">
+  <id>com.fugro.roames.displaz</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>BSD-3</project_license>
+  <name>displaz</name>
+  <summary>A hackable LIDAR viewer</summary>
+  <description>
+    <p>
+      displaz is a cross platform viewer for displaying LIDAR point clouds and derived artifacts such as fitted meshes. The interface was originally developed for viewing large airborne laser scans, but also works quite well for point clouds acquired using terrestrial lidar and other sources such as bathymetric sonar.
+    </p>
+  </description>
+  <url type="homepage">https://github.com/FugroRoames/displaz</url>
+  <update_contact>nigels@nigels.com</update_contact>
+</component>
