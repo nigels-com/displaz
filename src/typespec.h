@@ -51,10 +51,10 @@ struct TypeSpec
     bool fixedPoint; /// For Int,Uint: indicates fixed point scaling by
                      /// max value of the underlying integer type
 
-    TypeSpec() : type(Unknown), elsize(0), count(0), semantics(Array), fixedPoint(false) {}
+    TypeSpec() : type(Unknown), elsize(0), count(0), semantics(Array), fixedPoint(true) {}
 
     TypeSpec(Type type, int elsize, int count = 1,
-             Semantics semantics = Array, bool fixedPoint = false)
+             Semantics semantics = Array, bool fixedPoint = true)
         : type(type),
         elsize(elsize),
         count(count),
