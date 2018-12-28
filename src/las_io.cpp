@@ -129,7 +129,7 @@ bool PointArray::loadLas(QString fileName, size_t maxPointCount,
     uint16_t* color = 0;
     if (hasColor)
     {
-        fields.push_back(GeomField(TypeSpec(TypeSpec::Uint,2,3,TypeSpec::Color),
+        fields.push_back(GeomField(TypeSpec(TypeSpec::Uint,2,3,TypeSpec::Color,true),
                                         "color", npoints));
         color = fields.back().as<uint16_t>();
     }
