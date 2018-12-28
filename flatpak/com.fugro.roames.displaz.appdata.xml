@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
 	<id>com.fugro.roames.displaz</id>
-	<metadata_license>BSD-3-Clause</metadata_license>
+	<metadata_license>CC-BY-3.0</metadata_license>
 	<project_license>BSD-3-Clause</project_license>
 	<name>displaz</name>
-  <launchable type="desktop-id">com.fugro.roames.displaz.desktop</launchable>
+	<launchable type="desktop-id">com.fugro.roames.displaz.desktop</launchable>
 	<summary>A hackable LIDAR viewer</summary>
 	<description>
 		<p>
@@ -27,9 +27,9 @@
 	</screenshots>
 	<url type="homepage">https://github.com/FugroRoames/displaz</url>
 	<releases>
-		​​<release version="0.4.1" date="2018-12-28" />
-		​​<release version="0.4.0" date="2017-05-07" />
-		​​<release version="0.3.2" date="2015-08-11" />
+		<release version="0.4.1" date="2018-12-28" />
+		<release version="0.4.0" date="2017-05-07" />
+		<release version="0.3.2" date="2015-08-11" />
 	</releases>
 	<update_contact>nigels@nigels.com</update_contact>
 </component>
