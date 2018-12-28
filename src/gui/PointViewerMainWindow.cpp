@@ -358,11 +358,7 @@ void PointViewerMainWindow::dropEvent(QDropEvent *event)
     for (int i = 0; i < urls.size(); ++i)
     {
          if (urls[i].isLocalFile())
-         {
-            QString name = urls[i].toLocalFile();
-            if (name.startsWith("/home/nigels/")) name.replace("/home/nigels/", "/var/home/")
-             m_fileLoader->loadFile(FileLoadInfo(name));
-         }
+             m_fileLoader->loadFile(FileLoadInfo(urls[i].toLocalFile()));
     }
 }
 
