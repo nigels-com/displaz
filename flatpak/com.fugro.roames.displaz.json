@@ -1,0 +1,47 @@
+{
+  "id": "com.fugro.roames.displaz",
+  "branch": "master",
+  "runtime": "org.kde.Platform",
+  "runtime-version": "5.11",
+  "sdk": "org.kde.Sdk",
+  "command": "displaz",
+  "tags": [
+    "master"
+  ],
+  "finish-args": [
+    "--socket=x11",
+    "--socket=wayland",
+    "--device=dri"
+  ],
+  "modules": [
+    {
+      "name": "displaz",
+      "buildsystem": "simple",
+      "sources": [
+        {
+          "type": "git",
+          "url": "https://github.com/FugroRoames/displaz.git"
+        },
+        {
+          "type": "shell",
+          "commands": [
+            "mkdir -p thirdparty/external/downloads",
+            "sed -i '/#    include <GL\\/glu.h>/d' thirdparty/glew/GL/glew.h"
+          ]
+        },
+        {
+          "type": "file",
+          "url": "http://download.savannah.nongnu.org/releases/openexr/ilmbase-2.2.0.tar.gz",
+          "dest-filename": "thirdparty/external/downloads/ilmbase-2.2.0.tar.gz",
+          "sha256": "ecf815b60695555c1fbc73679e84c7c9902f4e8faa6e8000d2f905b8b86cedc7"
+        }
+      ],
+      "build-commands": [
+        "mkdir build_external",
+        "pushd build_external && cmake ../thirdparty/external && make && popd",
+        "mkdir build",
+        "pushd build && cmake -DCMAKE_INSTALL_PREFIX=/app .. && make install && popd"
+      ]
+    }
+  ]
+}
