@@ -10,3 +10,11 @@
    `$ flatpak --user install repo com.fugro.roames.displaz`
 4. Run
    `$ flatpak run com.fugro.roames.displaz`
+
+## BUNDLES
+
+* Create a bundle from a repo
+   `$ flatpak build-bundle repo displaz.flatpak com.fugro.roames.displaz`
+
+* Install a bundle
+   `$ flatpak install displaz.flatpak`
