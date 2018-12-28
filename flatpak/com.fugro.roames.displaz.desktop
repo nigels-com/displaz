@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=displaz
-Exec=com.fugro.roames.displaz
+Exec=displaz
 Type=Application
 Icon=com.fugro.roames.displaz
 Categories=Qt;Education;Science;Geography;
