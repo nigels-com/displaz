@@ -25,7 +25,7 @@ RUN mkdir ${SCRATCH}
 WORKDIR ${SCRATCH}
 
 ARG REPO
-ENV REPO ${REPO:-https://github.com/c42f/displaz.git}
+ENV REPO ${REPO:-https://github.com/FugroRoames/displaz.git}
 RUN git clone ${REPO} repo
 
 #
