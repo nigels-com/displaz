@@ -33,10 +33,13 @@ See `the user guide <doc/userguide.rst>`_ for usage examples and instructions.
 Installation
 ------------
 
-Binary installer packages for windows are provided on the `releases page
-<https://github.com/c42f/displaz/releases>`_.  For linux, it should be fairly
-easy to build it yourself by following the instructions below.
+For Windows installer packages are available from the 
+`releases page <https://github.com/c42f/displaz/releases>`.
 
+For Linux a `Flatpak<https://flatpak.org/>` is available:
+
+1. `Setup Flatpak<https://flatpak.org/setup/>`
+2. Install `displaz<https://flathub.org/apps/details/com.fugro.roames.displaz>`
 
 Building
 --------
