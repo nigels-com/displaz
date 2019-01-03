@@ -1,4 +1,4 @@
-# Minimal mapbox/protozero build, test and install
+# Minimal displaz Qt5 build, test and install
 # using Docker Ubuntu 16.04 (Xenial)
 
 FROM ubuntu:xenial
