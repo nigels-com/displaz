@@ -1,4 +1,4 @@
-# Minimal mapbox/protozero build, test and install
+# Minimal displaz Qt5 build, test and install
 # using Docker Debian 10 (buster)
 
 FROM debian:buster
