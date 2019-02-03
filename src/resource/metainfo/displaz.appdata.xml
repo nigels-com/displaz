@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+	<id>com.fugro.roames.displaz</id>
+	<metadata_license>CC0-1.0</metadata_license>
+	<project_license>BSD-3-Clause</project_license>
+	<name>displaz</name>
+	<launchable type="desktop-id">com.fugro.roames.displaz.desktop</launchable>
+	<summary>A hackable LIDAR viewer</summary>
+	<description>
+		<p>
+			displaz is a cross platform viewer for displaying LIDAR point clouds and derived artifacts such as fitted meshes. The interface was originally developed for viewing large airborne laser scans, but also works quite well for point clouds acquired using terrestrial lidar and other sources such as bathymetric sonar.
+		</p>
+		<p>
+			The goal is to provide a flexible and programmable technical tool for exploring large lidar point data sets and derived geometry.
+		</p>
+		<ul>
+			<li>Open point clouds up to the size of main memory. Performance remains interactive as the number of points becomes too large to draw in a single frame.</li>
+			<li>Create custom point visualizations. The OpenGL shader can be edited interactively. In the shader program, you automatically have access to any per-point attributes defined in the input file. Shader parameters are connected to user-defined GUI controls.</li>
+			<li>Plot interactively from your favourite programming language. Displaz IPC lets you script the interface from the command line. Experimental language bindings are available for C++, python, julia and Matlab.</li>
+		</ul>
+	</description>
+	<content_rating type="oars-1.1" />
+	<screenshots>
+		<screenshot type="default">
+			<image type="source">https://raw.githubusercontent.com/nigels-com/displaz/931c85cd94ecd9466ad29319252ddad67fde81e9/flatpak/screenshot/displaz-screenshot-2.jpg</image>
+		</screenshot>
+	</screenshots>
+	<url type="homepage">https://github.com/FugroRoames/displaz</url>
+	<releases>
+		<release version="0.4.1" date="2018-12-28" />
+		<release version="0.4.0" date="2017-05-07" />
+		<release version="0.3.2" date="2015-08-11" />
+	</releases>
+	<update_contact>nigels@nigels.com</update_contact>
+</component>
