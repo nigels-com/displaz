@@ -157,7 +157,7 @@ install(DIRECTORY thirdparty/licenses/ DESTINATION "${DISPLAZ_DOC_DIR}/thirdpart
 
 if(UNIX AND NOT APPLE)
     SET(DDM_PIXMAPS_DIR "share/icons")
-    SET(DDM_DESKTOP_DIR "usr/share/applications")
+    SET(DDM_DESKTOP_DIR "share/applications")
 
     install(FILES src/resource/icons/hicolor/256x256/apps/displaz.png  DESTINATION "${DDM_PIXMAPS_DIR}/hicolor/256x256/apps/")
     install(FILES src/resource/icons/hicolor/128x128/apps/displaz.png  DESTINATION "${DDM_PIXMAPS_DIR}/hicolor/128x128/apps/")
