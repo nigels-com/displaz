@@ -155,6 +155,7 @@ install(DIRECTORY thirdparty/licenses/ DESTINATION "${DISPLAZ_DOC_DIR}/thirdpart
 if(UNIX AND NOT APPLE)
     SET(DDM_PIXMAPS_DIR "share/icons")
     SET(DDM_DESKTOP_DIR "share/applications")
+    SET(DDM_METADATA_DIR "share/metadata")
 
     install(FILES src/resource/icons/hicolor/256x256/apps/displaz.png  DESTINATION "${DDM_PIXMAPS_DIR}/hicolor/256x256/apps/"  RENAME "${DISPLAZ_ID}.png")
     install(FILES src/resource/icons/hicolor/128x128/apps/displaz.png  DESTINATION "${DDM_PIXMAPS_DIR}/hicolor/128x128/apps/"  RENAME "${DISPLAZ_ID}.png")
@@ -163,6 +164,8 @@ if(UNIX AND NOT APPLE)
     install(FILES src/resource/icons/hicolor/scalable/apps/displaz.svg DESTINATION "${DDM_PIXMAPS_DIR}/hicolor/scalable/apps/" RENAME "${DISPLAZ_ID}.svg")
 
     install(FILES src/resource/applications/displaz.desktop            DESTINATION "${DDM_DESKTOP_DIR}/" RENAME "${DISPLAZ_ID}.desktop")
+
+    install(FILES src/resource/metainfo/displaz.appdata.xml            DESTINATION "${DDM_METADATA_DIR}/" RENAME "${DISPLAZ_ID}.appdata.xml")
 endif()
 
 #------------------------------------------------------------------------------
