@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=displaz
+Exec=displaz
+Type=Application
+Icon=displaz
+Categories=Qt;Education;Science;Geography;
+Keywords=point cloud;LIDAR;viewer
