@@ -116,7 +116,7 @@ include_directories(${IMATH_INCLUDE_DIRS})
 
 #------------------------------------------------------------------------------
 # Install directory for binaries
-# (It would seem sensible to avoid a bin directory on windows, but in practise
+# (It would seem sensible to avoid a bin directory on windows, but in practice
 # the NSIS installer expects binaries to be there.)
 set(DISPLAZ_BIN_DIR "bin")
 if (WIN32)
@@ -155,6 +155,19 @@ install(DIRECTORY test/ DESTINATION "${DISPLAZ_DOC_DIR}/examples")
 install(DIRECTORY shaders/ DESTINATION "${DISPLAZ_SHADER_DIR}")
 install(DIRECTORY thirdparty/licenses/ DESTINATION "${DISPLAZ_DOC_DIR}/thirdparty_licenses")
 
+if(UNIX AND NOT APPLE)
+    SET(DDM_PIXMAPS_DIR "share/icons")
+    SET(DDM_DESKTOP_DIR "usr/share/applications")
+
+    install(FILES src/resource/icons/hicolor/256x256/apps/displaz.png  DESTINATION "${DDM_PIXMAPS_DIR}/hicolor/256x256/apps/")
+    install(FILES src/resource/icons/hicolor/128x128/apps/displaz.png  DESTINATION "${DDM_PIXMAPS_DIR}/hicolor/128x128/apps/")
+    install(FILES src/resource/icons/hicolor/32x32/apps/displaz.png    DESTINATION "${DDM_PIXMAPS_DIR}/hicolor/32x32/apps/")
+    install(FILES src/resource/icons/hicolor/16x16/apps/displaz.png    DESTINATION "${DDM_PIXMAPS_DIR}/hicolor/16x16/apps/")
+    install(FILES src/resource/icons/hicolor/scalable/apps/displaz.svg DESTINATION "${DDM_PIXMAPS_DIR}/hicolor/scalable/apps/")
+    install(FILES src/resource/icons/hicolor/scalable/apps/displaz.svg DESTINATION "${DDM_PIXMAPS_DIR}/hicolor/scalable/apps/")
+
+    install(FILES src/resource/applications/displaz.desktop            DESTINATION "${DDM_DESKTOP_DIR}/")
+endif()
 
 #------------------------------------------------------------------------------
 # Documentation
