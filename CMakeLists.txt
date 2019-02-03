@@ -21,6 +21,10 @@ if (WIN32)
     cmake_policy(SET CMP0020 NEW)
 endif()
 
+# For flatpak purposes a full ID is required for DISPLAZ_ID
+# Such as: com.fugro.roames.displaz
+set(DISPLAZ_ID "displaz" CACHE STRING "ID for displaz" )
+
 option(DISPLAZ_STATIC "Build against static libraries" FALSE)
 option(DISPLAZ_USE_LAS "Build with support for reading las files" TRUE)
 option(DISPLAZ_USE_PDAL "Use PDAL for reading las files" FALSE)
@@ -159,14 +163,13 @@ if(UNIX AND NOT APPLE)
     SET(DDM_PIXMAPS_DIR "share/icons")
     SET(DDM_DESKTOP_DIR "share/applications")
 
-    install(FILES src/resource/icons/hicolor/256x256/apps/displaz.png  DESTINATION "${DDM_PIXMAPS_DIR}/hicolor/256x256/apps/")
-    install(FILES src/resource/icons/hicolor/128x128/apps/displaz.png  DESTINATION "${DDM_PIXMAPS_DIR}/hicolor/128x128/apps/")
-    install(FILES src/resource/icons/hicolor/32x32/apps/displaz.png    DESTINATION "${DDM_PIXMAPS_DIR}/hicolor/32x32/apps/")
-    install(FILES src/resource/icons/hicolor/16x16/apps/displaz.png    DESTINATION "${DDM_PIXMAPS_DIR}/hicolor/16x16/apps/")
-    install(FILES src/resource/icons/hicolor/scalable/apps/displaz.svg DESTINATION "${DDM_PIXMAPS_DIR}/hicolor/scalable/apps/")
-    install(FILES src/resource/icons/hicolor/scalable/apps/displaz.svg DESTINATION "${DDM_PIXMAPS_DIR}/hicolor/scalable/apps/")
+    install(FILES src/resource/icons/hicolor/256x256/apps/displaz.png  DESTINATION "${DDM_PIXMAPS_DIR}/hicolor/256x256/apps/"  RENAME "${DISPLAZ_ID}.png")
+    install(FILES src/resource/icons/hicolor/128x128/apps/displaz.png  DESTINATION "${DDM_PIXMAPS_DIR}/hicolor/128x128/apps/"  RENAME "${DISPLAZ_ID}.png")
+    install(FILES src/resource/icons/hicolor/32x32/apps/displaz.png    DESTINATION "${DDM_PIXMAPS_DIR}/hicolor/32x32/apps/"    RENAME "${DISPLAZ_ID}.png")
+    install(FILES src/resource/icons/hicolor/16x16/apps/displaz.png    DESTINATION "${DDM_PIXMAPS_DIR}/hicolor/16x16/apps/"    RENAME "${DISPLAZ_ID}.png")
+    install(FILES src/resource/icons/hicolor/scalable/apps/displaz.svg DESTINATION "${DDM_PIXMAPS_DIR}/hicolor/scalable/apps/" RENAME "${DISPLAZ_ID}.svg")
 
-    install(FILES src/resource/applications/displaz.desktop            DESTINATION "${DDM_DESKTOP_DIR}/")
+    install(FILES src/resource/applications/displaz.desktop            DESTINATION "${DDM_DESKTOP_DIR}/" RENAME "${DISPLAZ_ID}.desktop")
 endif()
 
 #------------------------------------------------------------------------------
