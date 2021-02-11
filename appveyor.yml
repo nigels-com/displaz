@@ -27,15 +27,17 @@ image: Visual Studio 2015
   matrix:
     # TODO: Enable both compilers?  How does this interact with the deploy?
     #- COMPILER: "Visual Studio 12 Win64"
-    #- COMPILER: "Visual Studio 14 Win64"
-    - COMPILER: "Visual Studio 15 Win64"
+    - COMPILER: "Visual Studio 14 2015 Win64"
+    - COMPILER: "Visual Studio 15 2017 Win64"
 
 # build platform, i.e. x86, x64, Any CPU.
 platform:
   - x64
 
 # build Configuration, i.e. Debug, Release, etc.
-configuration: Release
+configuration:
+  - Debug
+  - Release
 
 before_build:
   - echo --------------------------------------------------------------------------------
