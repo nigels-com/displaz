@@ -20,7 +20,10 @@ init:
 #   * environment
 #   * platform
 #   * configuration
-environment:
+
+image: Visual Studio 2015
+
+#environment:
   matrix:
     # TODO: Enable both compilers?  How does this interact with the deploy?
     #- COMPILER: "Visual Studio 12 Win64"
