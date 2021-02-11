@@ -21,12 +21,10 @@ init:
 #   * platform
 #   * configuration
 
-image: Visual Studio 2015
+image: Visual Studio 2017
 
-#environment:
+environment:
   matrix:
-    # TODO: Enable both compilers?  How does this interact with the deploy?
-    #- COMPILER: "Visual Studio 12 Win64"
     - COMPILER: "Visual Studio 14 2015 Win64"
     - COMPILER: "Visual Studio 15 2017 Win64"
 
@@ -34,7 +32,6 @@ image: Visual Studio 2015
 platform:
   - x64
 
-# build Configuration, i.e. Debug, Release, etc.
 configuration:
   - Debug
   - Release
@@ -43,7 +40,7 @@ before_build:
   - echo --------------------------------------------------------------------------------
   - echo Appveyor environment info:
   - echo COMPILER = %COMPILER%, CONFIGURATION = %CONFIGURATION%
-  - cmake -h
+# - cmake -h
   - rem --------------------------------------------------------------------------------
   - rem Build third party dependencies:
   - mkdir build_external
