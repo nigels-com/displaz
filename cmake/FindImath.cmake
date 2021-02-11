@@ -3,7 +3,7 @@
 # This sets:
 #   - IMATH_FOUND:  system has Imath
 #   - IMATH_INCLUDE_DIRS: the Imath include directories
-#   - IMATH_LIBRARIES: the ilmbase libraries
+#   - IMATH_LIBRARIES: the Imath libraries
 #   - IMATH_VERSION: the version string for Imath
 
 find_path(IMATH_INCLUDE_DIRS Imath/ImathConfig.h)
