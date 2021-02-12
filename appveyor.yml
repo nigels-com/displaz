@@ -18,19 +18,22 @@ environment:
     # See: https://github.com/AcademySoftwareFoundation/Imath/pull/95
     # - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
     #   COMPILER: "Visual Studio 14 2015 Win64"
+    #   QT: C:\Qt\5.13.2\msvc2015_64
 
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       COMPILER: "Visual Studio 15 2017 Win64"
+      QT: C:\Qt\5.13.2\msvc2017_64
 
-    # - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
-    #   COMPILER: "Visual Studio 16 2019"
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+      COMPILER: "Visual Studio 16 2019"
+      QT: C:\Qt\5.15.2\msvc2019_64
 
 # build platform, i.e. x86, x64, Any CPU.
 platform:
   - x64
 
 # build Configuration, i.e. Debug, Release, etc.
-configuration: Release
+configuration: Debug, Release
 
 before_build:
   - echo --------------------------------------------------------------------------------
@@ -52,7 +55,7 @@ build_script:
   - echo Build displaz:
   - mkdir build
   - cd build
-  - cmake -G "%COMPILER%" -D DISPLAZ_BUILD_NUMBER=%APPVEYOR_BUILD_NUMBER% ..
+  - cmake -G "%COMPILER%" -D CMAKE_PREFIX_PATH=%QT% -D DISPLAZ_BUILD_NUMBER=%APPVEYOR_BUILD_NUMBER% ..
   - cmake --build . --config %CONFIGURATION%
 
 after_build:
