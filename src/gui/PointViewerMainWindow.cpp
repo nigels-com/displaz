@@ -628,7 +628,7 @@ void PointViewerMainWindow::openFiles()
         this,
         tr("Open point clouds or meshes"),
         m_currFileDir.path(),
-        tr("Data sets (*.las *.laz *.txt *.xyz *.ply);;All files (*)"),
+        tr("Data sets (*.las *.laz *.txt *.xyz *.csv *.ply);;All files (*)"),
         0,
         QFileDialog::ReadOnly
     );
