@@ -630,6 +630,7 @@ void PointViewerMainWindow::openFiles()
     );
     if (files.empty())
         return;
+    files.sort();
     for (int i = 0; i < files.size(); ++i)
         m_fileLoader->loadFile(FileLoadInfo(files[i]));
     m_currFileDir = QFileInfo(files[0]).dir();
