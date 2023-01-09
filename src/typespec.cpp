@@ -2,7 +2,8 @@
 // Use of this code is governed by the BSD-style license found in LICENSE.txt
 
 #include "typespec.h"
-#include "glutil.h"
+
+#include <GL/glew.h>
 
 #include <tinyformat.h>
 

@@ -8,7 +8,6 @@
 #include <vector>
 #include <map>
 
-#include "glutil.h"
 #include "util.h"
 #include <QString>
 #include <QMetaType>
