@@ -5,6 +5,7 @@ include_directories(BEFORE
     gui
     render
     hcloud
+    ipc
     ../thirdparty
     ${GLEW_INCLUDE_DIR}
     ${OPENGL_INCLUDE_DIR}
@@ -56,20 +57,18 @@ macro(displaz_qt_wrap_cpp moc_out_srcs)
 endmacro()
 
 # Interprocess communication
-displaz_qt_wrap_cpp(ipc_moc_srcs IpcChannel.h)
+displaz_qt_wrap_cpp(ipc_moc_srcs ipc/IpcChannel.h)
 
 set(ipc_srcs
     ${ipc_moc_srcs}
-    InterProcessLock.cpp
-    IpcChannel.cpp
+    ipc/InterProcessLock.cpp
+    ipc/IpcChannel.cpp
 )
 
 # GUI
 displaz_qt_wrap_cpp(gui_moc_srcs
     fileloader.h
     geometrycollection.h
-    HookFormatter.h
-    HookManager.h
 
     gui/DataSetUI.h
     gui/DragSpinBox.h
@@ -86,6 +85,9 @@ displaz_qt_wrap_cpp(gui_moc_srcs
     render/Shader.h
     render/GeometryMutator.h
 
+    ipc/HookFormatter.h
+    ipc/HookManager.h
+
     hcloud/HCloudView.h
 )
 
@@ -99,8 +101,9 @@ set(gui_srcs
     ply_io.cpp
     las_io.cpp
     PolygonBuilder.cpp
-    HookFormatter.cpp
-    HookManager.cpp
+
+    ipc/HookFormatter.cpp
+    ipc/HookManager.cpp
 
     gui/DataSetUI.cpp
     gui/GLSLHighlighter.cpp
@@ -266,7 +269,7 @@ if (DISPLAZ_USE_TESTS)
     endif ()
 
     # Interprocess tests require special purpose executables
-    add_executable(InterProcessLock_test InterProcessLock_test.cpp util.cpp InterProcessLock.cpp)
+    add_executable(InterProcessLock_test ipc/InterProcessLock_test.cpp util.cpp ipc/InterProcessLock.cpp)
     if (DISPLAZ_USE_QT4)
         target_link_libraries(InterProcessLock_test ${QT_QTCORE_LIBRARY})
         target_link_libraries(unit_tests ${QT_QTCORE_LIBRARY})
