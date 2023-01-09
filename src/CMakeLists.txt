@@ -4,6 +4,7 @@ include_directories(BEFORE
     .
     gui
     render
+    hcloud
     ../thirdparty
     ${GLEW_INCLUDE_DIR}
     ${OPENGL_INCLUDE_DIR}
@@ -41,7 +42,7 @@ set(util_srcs
     logger.cpp
     geomfield.cpp
     typespec.cpp
-    hcloud.cpp
+    hcloud/hcloud.cpp
     util.cpp
     ../thirdparty/argparse.cpp
 )
@@ -80,11 +81,12 @@ displaz_qt_wrap_cpp(gui_moc_srcs
     gui/ShaderEditor.h
 
     render/Geometry.h
-    render/HCloudView.h
     render/View3D.h
     render/PointArray.h
     render/Shader.h
     render/GeometryMutator.h
+
+    hcloud/HCloudView.h
 )
 
 set(gui_srcs
@@ -109,13 +111,14 @@ set(gui_srcs
 
     render/Geometry.cpp
     render/glutil.cpp
-    render/HCloudView.cpp
     render/TriMesh.cpp
     render/PointArray.cpp
     render/View3D.cpp
     render/Shader.cpp
     render/GeometryMutator.cpp
     render/Annotation.cpp
+
+    hcloud/HCloudView.cpp
 
     ../thirdparty/rply/rply.c
     ../thirdparty/polypartition/polypartition.cpp
