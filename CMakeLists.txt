@@ -14,7 +14,7 @@ endif()
 
 project(displaz)
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8.12)
 
 if (WIN32)
     # cmake >= 2.8.10 needs this for Qt5 on Windows
@@ -62,7 +62,7 @@ else()
     message(STATUS "DISPLAZ_EXTERNAL_DIR (= \"${DISPLAZ_EXTERNAL_DIR}\") does not exist.  If you would like LASlib and ilmbase to be built for you, please run the cmake build system in thirdparty/external (see build instructions for details)")
 endif()
 
-find_package(Imath 1.0.1 REQUIRED)
+find_package(Imath)
 
 if (DISPLAZ_USE_LAS)
     add_definitions(-DDISPLAZ_USE_LAS)

@@ -97,7 +97,7 @@ set_directory_properties(PROPERTY ADDITIONAL_MAKE_CLEAN_FILES "${LASZIP_OUTPUT_L
 
 if(WIN32)
   add_definitions("-DLASZIP_DLL_EXPORT=1")
-  foreach(config ${CMAKE_CONFIGURATION_TYPES})
+  foreach(config Release)
     string(TOUPPER ${config} CONFIG)
     set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${CONFIG} "${LASZIP_OUTPUT_LIB_DIR}")
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CONFIG} "${LASZIP_OUTPUT_BIN_DIR}")

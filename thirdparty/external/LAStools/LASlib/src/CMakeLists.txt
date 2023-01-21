@@ -102,9 +102,9 @@ endif()
 install(FILES ${LAS_INCLUDES} DESTINATION include)
 
 if (MSVC)
-	foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
+	foreach( OUTPUTCONFIG Release )
 		install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../lib/${OUTPUTCONFIG} DESTINATION lib)
-	endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
+	endforeach( OUTPUTCONFIG Release )
 else()
 	install(TARGETS LASlib EXPORT laslib-targets
 		ARCHIVE DESTINATION lib
