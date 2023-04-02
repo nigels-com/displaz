@@ -15,6 +15,7 @@ uniform float reference = 400.0;    //# uiname=Reference Intensity; min=0.001; m
 uniform float exposure = 1.0;       //# uiname=Exposure; min=0.001; max=10000
 uniform float contrast = 1.0;       //# uiname=Contrast; min=0.001; max=10000
 uniform int colorMode = 0;          //# uiname=Colour Mode; enum=Intensity|Colour|Return Index|Point Source|Las Classification|File Number
+uniform int renderMode = 0;         //# uiname=Render Mode; enum=All|Front Facing|Transparent 
 uniform int selectionMode = 0;      //# uiname=Selection; enum=All|Classified|First Return|Last Return|First Of Several
 uniform float minPointSize = 0;
 uniform float maxPointSize = 400.0;
@@ -23,6 +24,11 @@ uniform float maxPointSize = 400.0;
 uniform float pointPixelScale = 0;
 uniform vec3 cursorPos = vec3(0);
 uniform int fileNumber = 0;
+
+// For (optional) multi-pass rendering
+uniform int pass = 0;
+uniform int passes = 2;             //# uiname=Passes; min=1; max=10
+
 in float intensity;
 in vec3 position;
 in vec3 color;
@@ -151,6 +157,7 @@ void main()
 #elif defined(FRAGMENT_SHADER)
 
 uniform float markerWidth = 0.3;
+uniform int pass = 0;               // For multi-pass rendering
 
 flat in float modifiedPointRadius;
 flat in float pointScreenSize;
@@ -211,7 +218,14 @@ void main()
                 discard;
         }
     }
-    fragColor = vec4(pointColor, 1);
+    if (pass==0)
+    {
+        fragColor = vec4(pointColor, 0);
+    }
+    else
+    {
+        fragColor = vec4(pointColor, 1);        
+    }
 }
 
 #endif

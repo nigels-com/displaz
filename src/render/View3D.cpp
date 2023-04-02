@@ -1037,18 +1037,33 @@ DrawCount View3D::drawPoints(const TransformState& transState,
     QGLShaderProgram& prog = m_shaderProgram->shaderProgram();
     prog.bind();
     m_shaderProgram->setUniforms();
-    QModelIndexList selection = m_selectionModel->selectedRows();
-    for(size_t i = 0; i < geoms.size(); ++i)
+
+    // Query the shader program for the number of passes
+    GLint passes = 1;
+    ShaderParam::Variant v;
+    if (m_shaderProgram->getUniform("passes", v) && v.index()==1)
     {
-        const Geometry& geom = *geoms[i];
-        if(geom.pointCount() == 0)
-            continue;
-        V3f relCursor = m_cursorPos - geom.offset();
-        prog.setUniformValue("cursorPos", relCursor.x, relCursor.y, relCursor.z);
-        prog.setUniformValue("fileNumber", (GLint)(selection[(int)i].row() + 1));
-        prog.setUniformValue("pointPixelScale", (GLfloat)(0.5*width()*dPR*m_camera.projectionMatrix()[0][0]));
-        totDrawCount += geom.drawPoints(prog, transState, quality, incrementalDraw);
+        passes = std::min(std::get<int>(v), 10);
     }
+
+    prog.setUniformValue("pointPixelScale", (GLfloat)(0.5*width()*dPR*m_camera.projectionMatrix()[0][0]));
+
+    QModelIndexList selection = m_selectionModel->selectedRows();
+    for (GLint p = 0; p < passes; ++p)
+    {
+        prog.setUniformValue("pass", p);
+        for(size_t i = 0; i < geoms.size(); ++i)
+        {
+            const Geometry& geom = *geoms[i];
+            if (geom.pointCount() == 0)
+                continue;
+            const V3f relCursor = m_cursorPos - geom.offset();
+            prog.setUniformValue("cursorPos", relCursor.x, relCursor.y, relCursor.z);
+            prog.setUniformValue("fileNumber", (GLint)(selection[(int)i].row() + 1));
+            totDrawCount += geom.drawPoints(prog, transState, quality, incrementalDraw);
+        }
+    }
+
     glDisable(GL_VERTEX_PROGRAM_POINT_SIZE);
     return totDrawCount;
 }
