@@ -25,6 +25,7 @@ uniform float pointPixelScale = 0;
 uniform vec3 cursorPos = vec3(0);
 uniform int fileNumber = 0;
 
+uniform int opacity = 100;          //# uiname=Opacity; min=0; max=100; slider=1
 // For (optional) multi-pass rendering
 uniform int pass = 0;
 uniform int passes = 2;             //# uiname=Passes; min=1; max=10
