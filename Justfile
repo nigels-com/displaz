@@ -20,7 +20,7 @@ default:
     @just --list --unsorted
 
 # Completely rebuild from scratch
-all: clobber external cmake build test install package
+all: clobber external cmake build test install
 
 # Remove cmake and build outputs
 clobber:
