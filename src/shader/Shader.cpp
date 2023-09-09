@@ -3,7 +3,6 @@
 
 #include "Shader.h"
 
-#include "tinyformat.h"
 #include "QtLogger.h"
 
 #include <QFormLayout>

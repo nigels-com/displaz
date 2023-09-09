@@ -3,7 +3,6 @@
 
 #include "ShaderProgram.h"
 
-#include "tinyformat.h"
 #include "DragSpinBox.h"
 #include "QtLogger.h"
 

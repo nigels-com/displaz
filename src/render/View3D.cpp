@@ -24,7 +24,6 @@
 #include "TriMesh.h"
 #include "Shader.h"
 #include "ShaderProgram.h"
-#include "tinyformat.h"
 #include "util.h"
 
 //------------------------------------------------------------------------------

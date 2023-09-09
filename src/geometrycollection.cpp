@@ -3,7 +3,6 @@
 
 #include "geometrycollection.h"
 
-#include "tinyformat.h"
 #include "fileloader.h"
 
 #include <QRegExp>
