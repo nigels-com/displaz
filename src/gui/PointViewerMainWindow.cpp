@@ -37,6 +37,7 @@
 #include <QLocalServer>
 #include <QMimeData>
 #include <QGLFormat>
+#include <QScreen>
 
 //------------------------------------------------------------------------------
 // PointViewerMainWindow implementation
@@ -750,18 +751,23 @@ void PointViewerMainWindow::screenShot()
     // this much simpler to implement.  (Other option: use
     // m_pointView->renderPixmap() and turn off incremental rendering.)
     QPoint tl = m_pointView->mapToGlobal(QPoint(0,0));
-    QPixmap sshot = QPixmap::grabWindow(QApplication::desktop()->winId(),
-                                        tl.x(), tl.y(),
-                                        m_pointView->width(), m_pointView->height());
-    QString fileName = QFileDialog::getSaveFileName(
-        this,
-        tr("Save screen shot"),
-        QDir::currentPath(),
-        tr("Image files (*.tif *.png *.jpg);;All files(*)")
-    );
-    if (fileName.isNull())
-        return;
-    sshot.save(fileName);
+
+    QScreen* screen = QGuiApplication::screenAt(tl);
+    if (screen)
+    {
+        QPixmap sshot = screen->grabWindow(QApplication::desktop()->winId(),
+                                           tl.x(), tl.y(),
+                                           m_pointView->width(), m_pointView->height());
+        QString fileName = QFileDialog::getSaveFileName(
+            this,
+            tr("Save screen shot"),
+            QDir::currentPath(),
+            tr("Image files (*.tif *.png *.jpg);;All files(*)")
+        );
+        if (fileName.isNull())
+            return;
+        sshot.save(fileName);
+    }
 }
 
 
