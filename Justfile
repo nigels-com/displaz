@@ -55,10 +55,6 @@ build:
 install:
     cmake --build {{BUILD}} --config {{CMAKE_BUILD_TYPE}} {{PARALLEL}} --target {{INSTALL}}
 
-# packaging step
-package:
-    cmake --build {{BUILD}} --config {{CMAKE_BUILD_TYPE}} {{PARALLEL}} --target dist
-
 # Remove build outputs
 clean:
     cmake --build {{BUILD}} --config {{CMAKE_BUILD_TYPE}} {{PARALLEL}} --target clean
