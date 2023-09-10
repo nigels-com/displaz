@@ -117,7 +117,7 @@ void DataSetListView::wheelEvent(QWheelEvent* event)
         int row = 0;
         if (selectionModel()->currentIndex().isValid())
             row = selectionModel()->currentIndex().row();
-        row += (event->delta() < 0) ? 1 : -1;
+        row += (event->angleDelta().y() < 0) ? 1 : -1;
         if (row < 0)
             row = 0;
         if (row >= model()->rowCount())
