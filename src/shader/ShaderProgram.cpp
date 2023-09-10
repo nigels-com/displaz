@@ -10,6 +10,8 @@
 #include <QFormLayout>
 #include <QComboBox>
 
+#include <algorithm>
+
 ShaderProgram::ShaderProgram(QObject* parent)
     : QObject(parent),
     m_pointSize(5),
@@ -35,7 +37,7 @@ void ShaderProgram::setupParameterUI(QWidget* parentWidget)
     {
         paramsOrdered.push_back(qMakePair(p.key(), p.value()));
     }
-    qSort(paramsOrdered.begin(), paramsOrdered.end(), paramOrderingLess);
+    std::sort(paramsOrdered.begin(), paramsOrdered.end(), paramOrderingLess);
     for (int i = 0; i < paramsOrdered.size(); ++i)
     {
         QWidget* edit = 0;
