@@ -10,7 +10,7 @@
 #include <cfloat>
 
 #include <QTimer>
-#include <QTime>
+#include <QElapsedTimer>
 #include <QKeyEvent>
 #include <QLayout>
 #include <QItemSelectionModel>
@@ -357,7 +357,7 @@ void View3D::paintGL()
 {
     if (m_badOpenGL)
         return;
-    QTime frameTimer;
+    QElapsedTimer frameTimer;
     frameTimer.start();
 
     // Get window size

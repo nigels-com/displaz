@@ -9,7 +9,7 @@
 #include "glutil.h"
 
 #include <QGLShaderProgram>
-#include <QTime>
+#include <QElapsedTimer>
 
 #include <functional>
 #include <algorithm>
@@ -264,7 +264,7 @@ bool PointArray::loadPly(QString fileName, size_t maxPointCount,
 
 bool PointArray::loadFile(QString fileName, size_t maxPointCount)
 {
-    QTime loadTimer;
+    QElapsedTimer loadTimer;
     loadTimer.start();
     setFileName(fileName);
     // Read file into point data fields.  Use very basic file type detection

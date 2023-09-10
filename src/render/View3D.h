@@ -23,7 +23,6 @@
 
 class QGLShaderProgram;
 class QItemSelectionModel;
-class QTimer;
 class QGLFormat;
 
 class ShaderProgram;
