@@ -6,7 +6,7 @@ BUILD                := "build"
 CMAKE_FLAGS          := ""
 CMAKE_INSTALL_PREFIX := BUILD / "install"
 CMAKE_BUILD_TYPE     := "Release"
-VERBOSE              := "Y"
+VERBOSE              := ""
 
 GENERATOR            := if os_family() == "windows"             { "Visual Studio 16 2019"} else { "" }
 PLATFORM             := if GENERATOR == "Visual Studio 16 2019" { "x64"}                   else { "" }
