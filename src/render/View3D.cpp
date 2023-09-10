@@ -529,7 +529,7 @@ void View3D::mousePressEvent(QMouseEvent* event)
     m_mouseButton = event->button();
     m_prevMousePos = event->pos();
 
-    if (event->button() == Qt::MidButton ||
+    if (event->button() == Qt::MiddleButton ||
         (event->button() == Qt::LeftButton && (event->modifiers() & Qt::ShiftModifier)))
     {
         snapToPoint(guessClickPosition(event->pos()));
@@ -561,7 +561,7 @@ void View3D::snapToPoint(const Imath::V3d & pos)
 
 void View3D::mouseMoveEvent(QMouseEvent* event)
 {
-    if (m_mouseButton == Qt::MidButton)
+    if (m_mouseButton == Qt::MiddleButton)
         return;
     bool zooming = m_mouseButton == Qt::RightButton;
     if(event->modifiers() & Qt::ControlModifier)
