@@ -9,7 +9,7 @@
 #include "glutil.h"
 
 #include <QGLShaderProgram>
-#include <QTime>
+#include <QElapsedTimer>
 
 #include <functional>
 #include <algorithm>
@@ -57,14 +57,12 @@ struct OctreeNode
         : beginIndex(0), endIndex(0), nextBeginIndex(0),
         center(center), halfWidth(halfWidth)
     {
-        for (int i = 0; i < 8; ++i)
-            children[i] = 0;
+        std::fill(children, children + 8, nullptr);
     }
 
     ~OctreeNode()
     {
-        for (int i = 0; i < 8; ++i)
-            delete children[i];
+        std::for_each(children, children + 8, [](auto v) { delete v; });
     }
 
     size_t findNearest(const EllipticalDist& distFunc,
@@ -80,7 +78,7 @@ struct OctreeNode
 
     bool isLeaf() const { return beginIndex != endIndex; }
 
-    /// Estimate cost of drawing a single leaf node with to given camera
+    /// Estimate the cost of drawing a single leaf node with a given camera
     /// position, quality, and incremental settings.
     ///
     /// Returns estimate of primitive draw count and whether there's anything
@@ -90,21 +88,23 @@ struct OctreeNode
     {
         assert(isLeaf());
         const double drawAllDist = 100;
-        double dist = (this->bbox.center() - relCamera).length();
-        double diagRadius = this->bbox.size().length()/2;
+        double dist = (bbox.center() - relCamera).length();
+        double diagRadius = bbox.size().length()/2;
         // Subtract bucket diagonal dist, since we really want an approx
         // distance to closest point in the bucket, rather than dist to center.
         dist = std::max(10.0, dist - diagRadius);
+
         double desiredFraction = std::min(1.0, quality*pow(drawAllDist/dist, 2));
-        size_t chunkSize = (size_t)ceil(this->size()*desiredFraction);
+        size_t chunkSize = (size_t)ceil(size()*desiredFraction);
+
         DrawCount drawCount;
         drawCount.numVertices = chunkSize;
         if (incrementalDraw)
         {
-            drawCount.numVertices = (this->nextBeginIndex >= this->endIndex) ? 0 :
-                std::min(chunkSize, this->endIndex - this->nextBeginIndex);
+            drawCount.numVertices = (nextBeginIndex >= endIndex) ? 0 :
+                std::min(chunkSize, endIndex - nextBeginIndex);
         }
-        drawCount.moreToDraw = this->nextBeginIndex < this->endIndex;
+        drawCount.moreToDraw = nextBeginIndex < endIndex;
         return drawCount;
     }
 };
@@ -130,7 +130,7 @@ struct ProgressFunc
 /// P[inds[beginIndex..endIndex]]; the tree building process sorts the inds
 /// array in place so that points for the output leaf nodes are held in
 /// the range P[inds[node.beginIndex, node.endIndex)]].  center is the central
-/// split point for splitting children of the current node; radius is the
+/// split point for splitting children of the current node; halfWidth is the
 /// current node radius measured along one of the axes.
 static OctreeNode* makeTree(int depth, size_t* inds,
                             size_t beginIndex, size_t endIndex,
@@ -139,6 +139,7 @@ static OctreeNode* makeTree(int depth, size_t* inds,
 {
     OctreeNode* node = new OctreeNode(center, halfWidth);
     const size_t pointsPerNode = 100000;
+
     // Limit max depth of tree to prevent infinite recursion when
     // greater than pointsPerNode points lie at the same position in
     // space.  floats effectively have 24 bit of precision in the
@@ -146,6 +147,8 @@ static OctreeNode* makeTree(int depth, size_t* inds,
     const int maxDepth = 24;
     size_t* beginPtr = inds + beginIndex;
     size_t* endPtr = inds + endIndex;
+
+    // Create a leaf node
     if (endIndex - beginIndex <= pointsPerNode || depth >= maxDepth)
     {
         static std::random_device rd;
@@ -160,6 +163,7 @@ static OctreeNode* makeTree(int depth, size_t* inds,
         progressFunc(endIndex - beginIndex);
         return node;
     }
+
     // Partition points into the 8 child nodes
     size_t* childRanges[9] = {0};
     multi_partition(beginPtr, endPtr, OctreeChildIdx(P, center), &childRanges[1], 8);
@@ -185,16 +189,14 @@ static OctreeNode* makeTree(int depth, size_t* inds,
 
 //------------------------------------------------------------------------------
 // PointArray implementation
-PointArray::PointArray()
-    : m_npoints(0),
-    m_positionFieldIdx(-1),
-    m_P(0)
-{ }
 
+PointArray::PointArray()
+{
+}
 
 PointArray::~PointArray()
-{ }
-
+{
+}
 
 /// Load point cloud in text format, assuming fields XYZ
 bool PointArray::loadText(QString fileName, size_t maxPointCount,
@@ -264,8 +266,9 @@ bool PointArray::loadPly(QString fileName, size_t maxPointCount,
 
 bool PointArray::loadFile(QString fileName, size_t maxPointCount)
 {
-    QTime loadTimer;
+    QElapsedTimer loadTimer;
     loadTimer.start();
+
     setFileName(fileName);
     // Read file into point data fields.  Use very basic file type detection
     // based on extension.
@@ -369,6 +372,7 @@ bool PointArray::loadFile(QString fileName, size_t maxPointCount)
     ProgressFunc progressFunc(*this);
     m_rootNode.reset(makeTree(0, &inds[0], 0, m_npoints, &m_P[0],
                               rootBound.center(), rootRadius, progressFunc));
+
     // Reorder point fields into octree order
     emit loadStepStarted("Reordering fields");
     for (size_t i = 0; i < m_fields.size(); ++i)
@@ -611,12 +615,7 @@ static void drawTree(QGLShaderProgram& prog, const TransformState& transState, c
     drawBox(transState, bbox, Imath::C3f(1), prog.programId());
     drawBox(transState, node->bbox, Imath::C3f(1,0,0), prog.programId());
 
-    for (int i = 0; i < 8; ++i)
-    {
-        OctreeNode* n = node->children[i];
-        if (n)
-            drawTree(prog, transState, n);
-    }
+    std::for_each(node->children, node->children + 8, [&](auto n) { if (n) drawTree(prog, transState, n); });
 }
 
 void PointArray::drawTree(QGLShaderProgram& prog, const TransformState& transState) const
@@ -712,8 +711,12 @@ DrawCount PointArray::drawPoints(QGLShaderProgram& prog, const TransformState& t
     {
         const OctreeNode* node = nodeStack.back();
         nodeStack.pop_back();
+
+        // Skip nodes, where possible
         if (clipBox.canCull(node->bbox))
             continue;
+
+        // Parent nodes are pushed to the stack, not drawn
         if (!node->isLeaf())
         {
             for (int i = 0; i < 8; ++i)
@@ -724,8 +727,12 @@ DrawCount PointArray::drawPoints(QGLShaderProgram& prog, const TransformState& t
             }
             continue;
         }
+
+        // Start from the start, unless drawing incrementally
         if (!incrementalDraw)
+        {
             node->nextBeginIndex = node->beginIndex;
+        }
 
         DrawCount nodeDrawCount = node->drawCount(relCamera, quality, incrementalDraw);
         drawCount += nodeDrawCount;
@@ -750,11 +757,11 @@ DrawCount PointArray::drawPoints(QGLShaderProgram& prog, const TransformState& t
         glBufferData(GL_ARRAY_BUFFER, nodeBufferSize, NULL, GL_STREAM_DRAW);
 
         GLintptr bufferOffset = 0;
-        for (size_t i = 0, k = 0; i < m_fields.size(); k+=m_fields[i].spec.arraySize(), ++i)
+        for (size_t i = 0, k = 0; i < m_fields.size(); k += m_fields[i].spec.arraySize(), ++i)
         {
             const GeomField& field = m_fields[i];
-            int arraySize = field.spec.arraySize();
-            int vecSize = field.spec.vectorSize();
+            const int arraySize = field.spec.arraySize();
+            const int vecSize = field.spec.vectorSize();
 
             // TODO?: Could use a single data-array that isn't split into
             // vertex / normal / color / etc. sections, but has interleaved
