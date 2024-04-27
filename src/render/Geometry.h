@@ -166,6 +166,9 @@ class Geometry : public QObject
         /// Get VBO
         const unsigned int getVBO(const char * vertexBufferName) const;
         const unsigned int vboCount() const { return (int)m_VBO.size(); }
+        /// Get EBO
+        const unsigned int getEBO(const char * elementBufferName) const;
+        const unsigned int eboCount() const { return (int)m_EBO.size(); }
 
     signals:
         /// Emitted at the start of a point loading step
@@ -186,6 +189,8 @@ class Geometry : public QObject
         void setVAO(const char * vertexArrayName, const unsigned int vertArrayId) { m_VAO[std::string(vertexArrayName)] = vertArrayId; }
         /// Set VBO
         void setVBO(const char * vertexBufferName, const unsigned int vertBufferId) { m_VBO[std::string(vertexBufferName)] = vertBufferId; }
+        /// Set EBO
+        void setEBO(const char * elementBufferName, const unsigned int elementBufferId) { m_EBO[std::string(elementBufferName)] = elementBufferId; }
 
     private:
         QString m_label;
@@ -194,8 +199,9 @@ class Geometry : public QObject
         V3d m_centroid;
         Imath::Box3d m_bbox;
 
-        std::map<std::string, unsigned int> m_VAO;
-        std::map<std::string, unsigned int> m_VBO;
+        std::map<std::string, unsigned int> m_VAO;   // Vertex Array Object
+        std::map<std::string, unsigned int> m_VBO;   // Vertex Buffer Object
+        std::map<std::string, unsigned int> m_EBO;   // Element Buffer Object
         std::map<std::string, unsigned int> m_Shaders;
 };
 
