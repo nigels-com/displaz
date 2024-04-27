@@ -43,10 +43,7 @@ Geometry::Geometry()
     : m_fileName(),
     m_offset(0,0,0),
     m_centroid(0,0,0),
-    m_bbox(),
-    m_VAO(),
-    m_VBO(),
-    m_Shaders()
+    m_bbox()
 { }
 
 Geometry::~Geometry()
@@ -91,6 +88,14 @@ void Geometry::destroyBuffers()
     }
 
     m_VAO.clear();
+
+    for (auto& it: m_EBO)
+    {
+        GLuint ebo = it.second;
+        glDeleteBuffers(1, &ebo);
+    }
+
+    m_EBO.clear();
 
 }
 
@@ -166,6 +171,17 @@ const unsigned int Geometry::getVBO(const char * vertexBufferName) const
         return m_VBO.at(std::string(vertexBufferName));
     }
     tfm::printfln("Geometry :: vertexBufferObject was not found - %s", vertexBufferName);
+    return 0;
+}
+
+const unsigned int Geometry::getEBO(const char * elementBufferName) const
+{
+    // always call this from an active OpenGL context
+    if(m_EBO.find(std::string(elementBufferName)) != m_EBO.end())
+    {
+        return m_EBO.at(std::string(elementBufferName));
+    }
+    tfm::printfln("Geometry :: elementBufferObject was not found - %s", elementBufferName);
     return 0;
 }
 
