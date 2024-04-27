@@ -114,7 +114,7 @@ las and laz format
 
 The main file format is the ASPRS LASer format; this is particularly
 appropriate for airborne laser scans.  Internally these formats are read using
-the LASlib (by default), so any standards-conforming las file should be read
+the LASlib, so any standards-conforming las file should be read
 correctly.
 
 

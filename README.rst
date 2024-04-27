@@ -46,13 +46,13 @@ Linux
 Install dependencies using your package manager.  Here's a handy list of
 dependencies for several distributions::
 
-    # Ubuntu >= 14.04 (and probably other debian-based distributions)
+    # Ubuntu >= 16.04 (Debian buster onwards and derivatives)
     sudo apt-get install git g++ cmake qt5-default python-docutils
 
     # Mint
     sudo apt-get install git g++ cmake qt5-default libqt5opengl5-dev python-docutils
 
-    # Fedora 28
+    # Fedora >= 32
     sudo yum install git gcc-c++ make patch cmake qt5-qtbase-devel mesa-libGLU-devel python-docutils
 
     # OpenSuse
