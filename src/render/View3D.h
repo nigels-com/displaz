@@ -16,6 +16,7 @@
 #include <QGLWidget>
 #include <QModelIndex>
 
+#include "FrameRate.h"
 #include "DrawCostModel.h"
 #include "InteractiveCamera.h"
 #include "geometrycollection.h"
@@ -191,6 +192,8 @@ class View3D : public QGLWidget
         unsigned int m_quadLabelVertexArray;
 
         double m_devicePixelRatio;
+
+        FrameRate m_frameRate;
 };
 
 

@@ -60,6 +60,16 @@ class PointArray : public Geometry
         void drawTree(QGLShaderProgram& prog, const TransformState& transState) const;
 
     private:
+
+        virtual DrawCount drawPointsA(QGLShaderProgram& prog,
+                                    const TransformState& transState,
+                                    double quality, bool incrementalDraw) const;
+
+        virtual DrawCount drawPointsB(QGLShaderProgram& prog,
+                                    const TransformState& transState,
+                                    double quality, bool incrementalDraw) const;
+
+    private:
         bool loadLas(QString fileName, size_t maxPointCount,
                      std::vector<GeomField>& fields, V3d& offset,
                      size_t& npoints, uint64_t& totalPoints);
