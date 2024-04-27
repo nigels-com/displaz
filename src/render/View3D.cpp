@@ -489,7 +489,7 @@ void View3D::paintGL()
     else
         m_incrementalFrameTimer->start(10);
 
-    m_incrementalDraw = true;
+//  m_incrementalDraw = true;
 }
 
 void View3D::drawMeshes(const TransformState& transState,

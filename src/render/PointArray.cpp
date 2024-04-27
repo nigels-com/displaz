@@ -157,7 +157,7 @@ static OctreeNode* makeTree(int depth, size_t* inds,
         static std::mt19937 g(rd());
         std::shuffle(beginPtr, endPtr, g);
 
-        // Leaf node: set up indices into point list 
+        // Leaf node: set up indices into point list
         for (size_t i = beginIndex; i < endIndex; ++i)
             node->bbox.extendBy(P[inds[i]]);
         node->beginIndex = beginIndex;
@@ -642,6 +642,32 @@ void PointArray::draw(const TransformState& transState, double quality) const
 {
 }
 
+#if 0
+size_t octreeIndex(const std::array<int, 3>& axis, const std::array<bool, 3>& quadrant)
+{
+    size_t i = 0;
+    for (j = 0; j < 3; ++j)
+    {
+        switch (axis[j])
+        {
+            case 0: if (quadrant[j]) i += 1; break;
+            case 1: if (quadrant[j]) i += 2; break;
+            case 2: if (quadrant[j]) i += 4; break;
+        }
+    }
+    return i;
+}
+#endif
+
+void pushStack(std::vector<const OctreeNode*>& nodeStack, OctreeNode* const* children, size_t index)
+{
+//  std::cout << index << std::endl;
+    if (const OctreeNode* node = children[index])
+    {
+        nodeStack.push_back(node);
+    }
+}
+
 DrawCount PointArray::drawPoints(QGLShaderProgram& prog, const TransformState& transState,
                                  double quality, bool incrementalDraw) const
 {
@@ -701,9 +727,10 @@ DrawCount PointArray::drawPoints(QGLShaderProgram& prog, const TransformState& t
     // Draw points in each bucket, with total number drawn depending on how far
     // away the bucket is.  Since the points are shuffled, this corresponds to
     // a stochastic simplification of the full point cloud.
-    V3f relCamera = relativeTrans.cameraPos();
+    const V3f relCamera = relativeTrans.cameraPos();
     std::vector<const OctreeNode*> nodeStack;
     nodeStack.push_back(m_rootNode.get());
+    bool first = true;
     while (!nodeStack.empty())
     {
         const OctreeNode* node = nodeStack.back();
@@ -716,7 +743,58 @@ DrawCount PointArray::drawPoints(QGLShaderProgram& prog, const TransformState& t
         // Parent nodes are pushed to the stack, not drawn
         if (!node->isLeaf())
         {
-            std::for_each(std::begin(nodeOrder), std::end(nodeOrder), [&](const auto& i) { if (node->children[i]) nodeStack.push_back(node->children[i]); });
+#if 0
+            // In no particular order
+            std::for_each(std::begin(node->children), std::end(node->children), [&](const auto& n) { if (n) nodeStack.push_back(n); });
+#else
+//            const V3f d = relCamera - node->center;
+            const V3f d(transState.modelViewMatrix[0][2], transState.modelViewMatrix[1][2], transState.modelViewMatrix[2][2]);
+
+            const V3f a(std::fabs(d.x), std::fabs(d.y), std::fabs(d.z));
+
+            constexpr std::array<int, 3> axisXYZ { 0, 1, 2 };
+            constexpr std::array<int, 3> axisXZY { 0, 2, 1 };
+            constexpr std::array<int, 3> axisYXZ { 1, 0, 2 };
+            constexpr std::array<int, 3> axisYZX { 1, 2, 0 };
+            constexpr std::array<int, 3> axisZXY { 2, 0, 1 };
+            constexpr std::array<int, 3> axisZYX { 2, 1, 0 };
+
+            const std::array<int, 3> axis =
+                a.x >= a.y && a.x >= a.z ?
+                    (a.y >= a.z ? axisXYZ : axisXZY) :
+                (a.y >= a.x && a.y >= a.z ?
+                    (a.x >= a.z ? axisYXZ : axisYZX) :
+                    (a.x >= a.y ? axisZXY : axisZYX));
+
+            if (first)
+            {
+                std::cout << d << std::endl;
+                std::cout << axis[0] << " " << axis[1] << " " << axis[2] << std::endl;
+                first = false;
+            }
+
+#if 1
+            const size_t index =
+                (d.x > 0.0 ? 1 : 0) |
+                (d.y > 0.0 ? 2 : 0) |
+                (d.z > 0.0 ? 4 : 0);
+#else
+            const size_t index =
+                (d.x < 0.0 ? 1 : 0) |
+                (d.y < 0.0 ? 2 : 0) |
+                (d.z < 0.0 ? 4 : 0);
+#endif
+
+            pushStack(nodeStack, node->children, index                                               );
+            pushStack(nodeStack, node->children, index ^ (                              1 << axis[2]));
+            pushStack(nodeStack, node->children, index ^ (               1 << axis[1]               ));
+            pushStack(nodeStack, node->children, index ^ (               1 << axis[1] | 1 << axis[2]));
+            pushStack(nodeStack, node->children, index ^ (1 << axis[0]                              ));
+            pushStack(nodeStack, node->children, index ^ (1 << axis[0]                | 1 << axis[2]));
+            pushStack(nodeStack, node->children, index ^ (1 << axis[0] | 1 << axis[1]               ));
+            pushStack(nodeStack, node->children, index ^ (1 << axis[0] | 1 << axis[1] | 1 << axis[2]));
+#endif
+
             continue;
         }
 
