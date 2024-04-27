@@ -479,9 +479,11 @@ void View3D::paintGL()
     if (!drawCount.moreToDraw)
         m_incrementalFrameTimer->stop();
     else
-        m_incrementalFrameTimer->start(10);
+        m_incrementalFrameTimer->start(5);
 
-//  m_incrementalDraw = true;
+    m_incrementalDraw = true;
+
+    ++m_frameRate;
 }
 
 void View3D::drawMeshes(const TransformState& transState,
