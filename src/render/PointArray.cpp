@@ -649,7 +649,7 @@ void PointArray::draw(const TransformState& transState, double quality) const
 DrawCount PointArray::drawPoints(QGLShaderProgram& prog, const TransformState& transState,
                                   double quality, bool incrementalDraw) const
 {
-    return drawPointsB(prog, transState, quality, incrementalDraw);
+    return drawPointsA(prog, transState, quality, incrementalDraw);
 }
 
 DrawCount PointArray::drawPointsA(QGLShaderProgram& prog, const TransformState& transState,
@@ -715,7 +715,7 @@ DrawCount PointArray::drawPointsA(QGLShaderProgram& prog, const TransformState& 
     std::iota(nodeOrder.begin(), nodeOrder.end(), 0);  // Order does not matter
 
     // Permute the order of traversal based on the viewing direction
-    if (true)
+    if (false)
     {
         const V3f d(transState.modelViewMatrix[0][2], transState.modelViewMatrix[1][2], transState.modelViewMatrix[2][2]);
         const V3f a(std::fabs(d.x), std::fabs(d.y), std::fabs(d.z));
@@ -756,6 +756,8 @@ DrawCount PointArray::drawPointsA(QGLShaderProgram& prog, const TransformState& 
     // away the bucket is.  Since the points are shuffled, this corresponds to
     // a stochastic simplification of the full point cloud.
     const V3f relCamera = relativeTrans.cameraPos();
+
+    size_t totDraw = 0;
 
     // Octree traversal
     std::vector<const OctreeNode*> nodeStack;
@@ -852,8 +854,9 @@ DrawCount PointArray::drawPointsA(QGLShaderProgram& prog, const TransformState& 
 
         glDrawArrays(GL_POINTS, 0, (GLsizei)nodeDrawCount.numVertices);
         node->nextBeginIndex += nodeDrawCount.numVertices;
+        totDraw += nodeDrawCount.numVertices;
     }
-    //tfm::printf("Drew %d of total points %d, quality %f\n", totDraw, m_npoints, quality);
+    tfm::printf("Drew %d of total points %d, quality %f\n", totDraw, m_npoints, quality);
 
     // Disable all attribute arrays - leaving these enabled seems to screw with
     // the OpenGL fixed function pipeline in unusual ways.
