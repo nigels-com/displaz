@@ -369,8 +369,6 @@ void View3D::paintGL()
 {
     if (m_badOpenGL)
         return;
-    QElapsedTimer frameTimer;
-    frameTimer.start();
 
     // Get window size
     double dPR = getDevicePixelRatio();
@@ -385,102 +383,122 @@ void View3D::paintGL()
         resizeGL(w, h);
     }
 
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_incrementalFramebuffer.id());
+    const TransformState transState(Imath::V2i(w, h),
+                                    m_camera.projectionMatrix(),
+                                    m_camera.viewMatrix());
+
+    const std::vector<const Geometry*> geoms = selectedGeometry();
+
+    DrawCount drawCount;
 
     //--------------------------------------------------
-    // Draw main scene
-    TransformState transState(Imath::V2i(w, h),
-                              m_camera.projectionMatrix(),
-                              m_camera.viewMatrix());
+    // Off-screen rendering
+    //--------------------------------------------------
 
-    glClearDepth(1.0f);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDepthFunc(GL_LEQUAL);
-    glClearColor(m_backgroundColor.redF(), m_backgroundColor.greenF(),
-                 m_backgroundColor.blueF(), 1.0f);
-    glClearStencil(0);
-    if (!m_incrementalDraw)
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT| GL_STENCIL_BUFFER_BIT);
-
-    std::vector<const Geometry*> geoms = selectedGeometry();
-
-    // Aim for 40ms frame time - an ok tradeoff for desktop usage
-    const double targetMillisecs = 40;
-    double quality = m_drawCostModel.quality(targetMillisecs, geoms, transState,
-                                             m_incrementalDraw);
-
-    // Render points
-    DrawCount drawCount = drawPoints(transState, geoms, quality, m_incrementalDraw);
-
-    // Draw meshes and lines
-    if (!m_incrementalDraw)
     {
-        drawMeshes(transState, geoms);
-        // Generic draw for any other geometry
-        // (TODO: make all geometries use this interface, or something similar)
-        // FIXME - Do generic quality scaling
-        const double quality = 1;
-        for (size_t i = 0; i < geoms.size(); ++i)
-            geoms[i]->draw(transState, quality);
+        QElapsedTimer frameTimer;
+        frameTimer.start();
+
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_incrementalFramebuffer.id());
+
+        glClearDepth(1.0f);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDepthFunc(GL_LEQUAL);
+        glClearStencil(0);
+        glClearColor(m_backgroundColor.redF(), m_backgroundColor.greenF(),
+                     m_backgroundColor.blueF(), 1.0f);
+        if (!m_incrementalDraw)
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+        //
+
+        // Aim for 40ms frame time - an ok tradeoff for desktop usage
+        const double targetMillisecs = 40;
+        double quality = m_drawCostModel.quality(targetMillisecs, geoms, transState,
+                                                 m_incrementalDraw);
+
+        // Render points
+        drawCount = drawPoints(transState, geoms, quality, m_incrementalDraw);
+
+        // Draw meshes and lines
+        if (!m_incrementalDraw)
+        {
+            drawMeshes(transState, geoms);
+            // Generic draw for any other geometry
+            // (TODO: make all geometries use this interface, or something similar)
+            // FIXME - Do generic quality scaling
+            const double quality = 1;
+            for (size_t i = 0; i < geoms.size(); ++i)
+                geoms[i]->draw(transState, quality);
+        }
+
+        // Measure frame time to update estimate for how much geometry we can draw
+        // with a reasonable frame rate
+        glFinish();
+        int frameTime = frameTimer.elapsed();
+
+        if (!geoms.empty())
+            m_drawCostModel.addSample(drawCount, frameTime);
     }
 
-    // Measure frame time to update estimate for how much geometry we can draw
-    // with a reasonable frame rate
-    glFinish();
-    int frameTime = frameTimer.elapsed();
-
-    if (!geoms.empty())
-        m_drawCostModel.addSample(drawCount, frameTime);
-
-    // Debug: print bar showing how well we're sticking to the frame time
+// Debug: print bar showing how well we're sticking to the frame time
 //    int barSize = 40;
 //    std::string s = std::string(barSize*frameTime/targetMillisecs, '=');
 //    if ((int)s.size() > barSize)
 //        s[barSize] = '|';
 //    tfm::printfln("%12f %4d %s", quality, frameTime, s);
 
-    // TODO: this should really render a texture onto a quad and not use glBlitFramebuffer
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, m_incrementalFramebuffer.id());
-    glBlitFramebuffer(0,0,w,h, 0,0,w,h,
-                      GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST); // has to be GL_NEAREST to work with DEPTH
+    //--------------------------------------------------
+    // On-screen rendering
+    //--------------------------------------------------
 
-    // Draw a grid for orientation purposes
-    if (m_drawGrid)
-        drawGrid();
-
-    // Draw bounding boxes
-    if (m_drawBoundingBoxes)
     {
-        if (m_boundingBoxShader->isValid())
-        {
-            QGLShaderProgram &boundingBoxShader = m_boundingBoxShader->shaderProgram();
-            // shader
-            boundingBoxShader.bind();
-            // matrix stack
-            transState.setUniforms(boundingBoxShader.programId());
+        // TODO: this should really render a texture onto a quad and not use glBlitFramebuffer
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, m_incrementalFramebuffer.id());
+        glBlitFramebuffer(0,0,w,h, 0,0,w,h,
+                          GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST); // has to be GL_NEAREST to work with DEPTH
 
-            for (size_t i = 0; i < geoms.size(); ++i)
+        // Draw a grid for orientation purposes
+        if (m_drawGrid)
+            drawGrid();
+
+        // Draw bounding boxes
+        if (m_drawBoundingBoxes)
+        {
+            if (m_boundingBoxShader->isValid())
             {
-                drawBoundingBox(transState, geoms[i]->getVAO("boundingbox"), geoms[i]->boundingBox().min,
-                                Imath::C3f(1), geoms[i]->shaderId("boundingbox")); //boundingBoxShader.programId()
+                QGLShaderProgram &boundingBoxShader = m_boundingBoxShader->shaderProgram();
+                // shader
+                boundingBoxShader.bind();
+                // matrix stack
+                transState.setUniforms(boundingBoxShader.programId());
+
+                for (size_t i = 0; i < geoms.size(); ++i)
+                {
+                    drawBoundingBox(transState, geoms[i]->getVAO("boundingbox"), geoms[i]->boundingBox().min,
+                                    Imath::C3f(1), geoms[i]->shaderId("boundingbox")); //boundingBoxShader.programId()
+                }
             }
         }
-    }
 
-    // Draw overlay stuff, including cursor position.
-    if (m_drawCursor)
-        drawCursor(transState, m_cursorPos, 10);
-        //drawCursor(transState, m_camera.center(), 10);
+        // Draw overlay stuff, including cursor position.
 
-    // Draw overlay axes
-    if (m_drawAxes)
-        drawAxes();
+        if (m_drawCursor)
+        {
+            drawCursor(transState, m_cursorPos, 10);
+            //drawCursor(transState, m_camera.center(), 10);
+        }
 
-    // Draw annotations
-    if (m_drawAnnotations && m_annotationShader->isValid())
-    {
-        drawAnnotations(transState, w, h);
+        if (m_drawAxes)
+        {
+            drawAxes();
+        }
+
+        if (m_drawAnnotations && m_annotationShader->isValid())
+        {
+            drawAnnotations(transState, w, h);
+        }
     }
 
     // Set up timer to draw a high quality frame if necessary

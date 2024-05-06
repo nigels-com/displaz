@@ -61,13 +61,16 @@ class PointArray : public Geometry
 
     private:
 
-        virtual DrawCount drawPointsA(QGLShaderProgram& prog,
-                                    const TransformState& transState,
-                                    double quality, bool incrementalDraw) const;
+        // 40M @12FPS for NVIDIA GeForce GT 1030
+        DrawCount drawPointsSubsampled(QGLShaderProgram& prog, const TransformState& transState, const size_t maxPoints = 40000000) const;
 
-        virtual DrawCount drawPointsB(QGLShaderProgram& prog,
-                                    const TransformState& transState,
-                                    double quality, bool incrementalDraw) const;
+        DrawCount drawPointsA(QGLShaderProgram& prog,
+                              const TransformState& transState,
+                              double quality, bool incrementalDraw) const;
+
+        DrawCount drawPointsB(QGLShaderProgram& prog,
+                              const TransformState& transState,
+                              double quality, bool incrementalDraw) const;
 
     private:
         bool loadLas(QString fileName, size_t maxPointCount,
