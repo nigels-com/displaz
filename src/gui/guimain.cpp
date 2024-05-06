@@ -81,6 +81,8 @@ int guimain(int argc, char* argv[])
     // nicer, but also makes the render much slower, especially on lower
     // powered graphics cards.
     QGLFormat f = QGLFormat::defaultFormat();
+    f.setDepth(true);
+
     f.setVersion( 3, 2 );
     f.setProfile( QGLFormat::CoreProfile ); // Requires >=Qt-4.8.0
     //f.setSampleBuffers(true);
