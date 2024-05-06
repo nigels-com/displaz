@@ -140,8 +140,8 @@ static OctreeNode* makeTree(int depth, size_t* inds,
                             float halfWidth, ProgressFunc& progressFunc)
 {
     OctreeNode* node = new OctreeNode(center, halfWidth);
-//  const size_t pointsPerNode = 100000;
-    const size_t pointsPerNode = 10000;
+    const size_t pointsPerNode = 100000;
+//  const size_t pointsPerNode = 10000;
 
     // Limit max depth of tree to prevent infinite recursion when
     // greater than pointsPerNode points lie at the same position in
@@ -631,17 +631,27 @@ void PointArray::initializeGL()
 {
     Geometry::initializeGL();
 
-    GLuint vao;
-    glGenVertexArrays(1, &vao);
-    setVAO("points", vao);
+    // Complete cloud for quality mode
+    {
+        GLuint vao;
+        glGenVertexArrays(1, &vao);
+        setVAO("points", vao);
 
-    GLuint vbo;
-    glGenBuffers(1, &vbo);
-    setVBO("point_buffer", vbo);
+        GLuint vbo;
+        glGenBuffers(1, &vbo);
+        setVBO("points", vbo);
+    }
 
-    GLuint ebo;
-    glGenBuffers(1, &ebo);
-    setEBO("element_buffer", ebo);
+    // Subsampled cloud for fast mode
+    {
+        GLuint vao;
+        glGenVertexArrays(1, &vao);
+        setVAO("subsampled", vao);
+
+        GLuint vbo;
+        glGenBuffers(1, &vbo);
+        setVBO("subsampled", vbo);
+    }
 }
 
 void PointArray::draw(const TransformState& transState, double quality) const
@@ -651,7 +661,134 @@ void PointArray::draw(const TransformState& transState, double quality) const
 DrawCount PointArray::drawPoints(QGLShaderProgram& prog, const TransformState& transState,
                                   double quality, bool incrementalDraw) const
 {
-    return drawPointsA(prog, transState, quality, incrementalDraw);
+    return drawPointsSubsampled(prog, transState);
+
+//    return drawPointsB(prog, transState, quality, incrementalDraw);
+}
+
+DrawCount PointArray::drawPointsSubsampled(QGLShaderProgram& prog, const TransformState& transState, const size_t maxPoints) const
+{
+    const size_t n = std::min(m_npoints, maxPoints);
+
+    GLuint vao = getVAO("subsampled");
+    glBindVertexArray(vao);
+
+    GLuint vbo = getVBO("subsampled");
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+    TransformState relativeTrans = transState.translate(offset());
+    relativeTrans.setUniforms(prog.programId());
+
+    const std::vector<ShaderAttribute> activeAttrs = activeShaderAttributes(prog.programId());
+    // Figure out shader locations for each point field
+    // TODO: attributeLocation() forces the OpenGL usage here to be
+    // synchronous.  Does this matter?  (Alternative: bind them ourselves.)
+    std::vector<const ShaderAttribute*> attributes;
+    for (size_t i = 0; i < m_fields.size(); ++i)
+    {
+        const GeomField& field = m_fields[i];
+        if (field.spec.isArray())
+        {
+            for (int j = 0; j < field.spec.count; ++j)
+            {
+                std::string name = tfm::format("%s[%d]", field.name, j);
+                attributes.push_back(findAttr(name, activeAttrs));
+            }
+        }
+        else
+        {
+            attributes.push_back(findAttr(field.name, activeAttrs));
+        }
+    }
+
+    // Zero out active attributes in case they don't have associated fields
+    GLfloat zeros[16] = {0};
+    for (size_t i = 0; i < activeAttrs.size(); ++i)
+    {
+        prog.setAttributeValue((int)i, zeros, activeAttrs[i].rows,
+                               activeAttrs[i].cols);
+    }
+    // Enable attributes which have associated fields
+    for (size_t i = 0; i < attributes.size(); ++i)
+    {
+        if (attributes[i])
+            glEnableVertexAttribArray(attributes[i]->location);
+    }
+
+    // Compute number of bytes required to store all attributes of a vertex, in
+    // bytes.
+    const size_t perVertexBytes = bytes<size_t>(m_fields.begin(), m_fields.end());
+
+    static bool firstTime = true;
+
+    if (firstTime)
+    {
+        firstTime = false;
+
+        GLsizeiptr nodeBufferSize = perVertexBytes * n;
+        glBufferData(GL_ARRAY_BUFFER, nodeBufferSize, NULL, GL_STREAM_DRAW);
+
+        GLintptr bufferOffset = 0;
+        for (size_t i = 0, k = 0; i < m_fields.size(); k += m_fields[i].spec.arraySize(), ++i)
+        {
+            const GeomField& field = m_fields[i];
+            const int arraySize = field.spec.arraySize();
+            const int vecSize = field.spec.vectorSize();
+
+            // TODO?: Could use a single data-array that isn't split into
+            // vertex / normal / color / etc. sections, but has interleaved
+            // data ?  OpenGL has a stride value in glVertexAttribPointer for
+            // exactly this purpose, which should be used for better efficiency
+            // here we write only the current attribute data into this the
+            // buffer (e.g. all positions, then all colors)
+            GLsizeiptr fieldBufferSize = arraySize * vecSize * field.spec.elsize * n;
+            glBufferSubData(GL_ARRAY_BUFFER, bufferOffset, fieldBufferSize, field.data.get());
+
+            // Tell OpenGL how to interpret the buffer of raw data which was
+            // just uploaded.  This should be a single call, but OpenGL spec
+            // insanity says we need `arraySize` calls (though arraySize=1
+            // for most usage.)
+            for (int j = 0; j < arraySize; ++j)
+            {
+                const ShaderAttribute* attr = attributes[k+j];
+                if (!attr)
+                    continue;
+
+                GLintptr arrayElementOffset = bufferOffset + j*field.spec.elsize;
+
+                if (attr->baseType == TypeSpec::Int || attr->baseType == TypeSpec::Uint)
+                {
+                    glVertexAttribIPointer(attr->location, vecSize, glBaseType(field.spec),
+                                           0, (const GLvoid *)arrayElementOffset);
+                }
+                else
+                {
+                    glVertexAttribPointer(attr->location, vecSize, glBaseType(field.spec),
+                                          field.spec.fixedPoint, 0, (const GLvoid *)arrayElementOffset);
+                }
+            }
+
+            bufferOffset += fieldBufferSize;
+        }
+    }
+
+    glDrawArrays(GL_POINTS, 0, static_cast<GLsizei>(n));
+
+    // Disable all attribute arrays - leaving these enabled seems to screw with
+    // the OpenGL fixed function pipeline in unusual ways.
+    for (size_t i = 0; i < attributes.size(); ++i)
+    {
+        if (attributes[i])
+            glDisableVertexAttribArray(attributes[i]->location);
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    DrawCount drawCount;
+    drawCount.numVertices = n;
+    drawCount.moreToDraw = false;
+    return drawCount;
 }
 
 DrawCount PointArray::drawPointsA(QGLShaderProgram& prog, const TransformState& transState,
@@ -660,7 +797,7 @@ DrawCount PointArray::drawPointsA(QGLShaderProgram& prog, const TransformState& 
     GLuint vao = getVAO("points");
     glBindVertexArray(vao);
 
-    GLuint vbo = getVBO("point_buffer");
+    GLuint vbo = getVBO("points");
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
     TransformState relativeTrans = transState.translate(offset());
@@ -701,23 +838,15 @@ DrawCount PointArray::drawPointsA(QGLShaderProgram& prog, const TransformState& 
             glEnableVertexAttribArray(attributes[i]->location);
     }
 
-    // Compute number of bytes required to store all attributes of a vertex, in
-    // bytes.
-    size_t perVertexBytes = 0;
-    for (size_t i = 0; i < m_fields.size(); ++i)
-    {
-        const GeomField &field = m_fields[i];
-        unsigned int arraySize = field.spec.arraySize();
-        unsigned int vecSize = field.spec.vectorSize();
-        perVertexBytes += arraySize * vecSize * field.spec.elsize; //sizeof(glBaseType(field.spec));
-    }
+    // Compute number of bytes required to store all attributes of a vertex, in bytes.
+    const size_t perVertexBytes = bytes<size_t>(m_fields.begin(), m_fields.end());
 
     // Order of node traversal for (approximate) front-to-back or back-to-front
     std::array<size_t, 8> nodeOrder;
     std::iota(nodeOrder.begin(), nodeOrder.end(), 0);  // Order does not matter
 
     // Permute the order of traversal based on the viewing direction
-    if (false)
+    if (true)
     {
         const V3f d(transState.modelViewMatrix[0][2], transState.modelViewMatrix[1][2], transState.modelViewMatrix[2][2]);
         const V3f a(std::fabs(d.x), std::fabs(d.y), std::fabs(d.z));
@@ -749,6 +878,10 @@ DrawCount PointArray::drawPointsA(QGLShaderProgram& prog, const TransformState& 
         nodeOrder[5] = index ^ (1 << axis[0]                | 1 << axis[2]);
         nodeOrder[6] = index ^ (1 << axis[0] | 1 << axis[1]               );
         nodeOrder[7] = index ^ (1 << axis[0] | 1 << axis[1] | 1 << axis[2]);
+
+#if 1
+        std::reverse(nodeOrder.begin(), nodeOrder.end());
+#endif
     }
 
     DrawCount drawCount;
@@ -787,6 +920,10 @@ DrawCount PointArray::drawPointsA(QGLShaderProgram& prog, const TransformState& 
         }
 
         DrawCount nodeDrawCount = node->drawCount(relCamera, quality, incrementalDraw);
+#if 1
+        nodeDrawCount.numVertices = node->size();
+        nodeDrawCount.moreToDraw = false;
+#endif
         drawCount += nodeDrawCount;
 
         if (nodeDrawCount.numVertices == 0)
@@ -799,7 +936,7 @@ DrawCount PointArray::drawPointsA(QGLShaderProgram& prog, const TransformState& 
         // enough space for the entire set of vertex attributes which will be
         // passed to the shader.
         //
-        // (This new memory area will be bound to the "point_buffer" VBO until
+        // (This new memory area will be bound to the "points" VBO until
         // the memory is orphaned by calling glBufferData() next time through
         // the loop.  The orphaned memory should be cleaned up by the driver,
         // and this may actually be quite efficient, see
@@ -880,11 +1017,11 @@ DrawCount PointArray::drawPointsB(QGLShaderProgram& prog, const TransformState& 
     GLuint vao = getVAO("points");
     glBindVertexArray(vao);
 
-    GLuint vbo = getVBO("point_buffer");
+    GLuint vbo = getVBO("points");
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
-    GLuint ebo = getEBO("element_buffer");
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    // GLuint ebo = getEBO("element_buffer");
+    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 
     static size_t drawOffset = 0;
     if (!incrementalDraw)
@@ -933,14 +1070,7 @@ DrawCount PointArray::drawPointsB(QGLShaderProgram& prog, const TransformState& 
 
     // Compute number of bytes required to store all attributes of a vertex, in
     // bytes.
-    size_t perVertexBytes = 0;
-    for (size_t i = 0; i < m_fields.size(); ++i)
-    {
-        const GeomField &field = m_fields[i];
-        unsigned int arraySize = field.spec.arraySize();
-        unsigned int vecSize = field.spec.vectorSize();
-        perVertexBytes += arraySize * vecSize * field.spec.elsize; //sizeof(glBaseType(field.spec));
-    }
+   const size_t perVertexBytes = bytes<size_t>(m_fields.begin(), m_fields.end());
 
     static bool firstTime = true;
 
@@ -996,12 +1126,12 @@ DrawCount PointArray::drawPointsB(QGLShaderProgram& prog, const TransformState& 
 
         //
 
-        #if 1
+        #if 0
         std::vector<GLuint> index(m_npoints);
         std::iota(index.begin(), index.end(), 0);
         std::mt19937 rng;
         std::shuffle(index.begin(), index.end(), rng);
-        const size_t blockSize = 5000000;
+        const size_t blockSize = 20000000;
         for (size_t i = 0; i < m_npoints;)
         {
             const size_t end = std::min(i + blockSize, m_npoints);
@@ -1013,16 +1143,23 @@ DrawCount PointArray::drawPointsB(QGLShaderProgram& prog, const TransformState& 
 
     }
 
+    const size_t blockSize = 20000000;
+
 #if 1
-    const size_t count = std::min<size_t>(m_npoints, 20000000);
-    glDrawArrays(GL_POINTS, drawOffset, (GLsizei) count);
-    drawOffset += count;
+    if (drawOffset < m_npoints)
+    {
+        const size_t count = std::min<size_t>(m_npoints - drawOffset, blockSize);
+        glDrawArrays(GL_POINTS, drawOffset, static_cast<GLsizei>(count));
+        drawOffset += count;
+    }
 #endif
 
-    // const size_t start = drawOffset;
-    // const size_t end = std::min<size_t>(m_npoints, drawOffset + 10000000);
-    // glDrawRangeElements(GL_POINTS, drawOffset, end, end - start, GL_UNSIGNED_INT, 0);
-    // drawOffset += (end - start);
+#if 0
+    const size_t start = drawOffset;
+    const size_t end = std::min<size_t>(m_npoints, drawOffset + blockSize);
+    glDrawRangeElements(GL_POINTS, drawOffset, end, end - start, GL_UNSIGNED_INT, 0);
+    drawOffset += (end - start);
+#endif
 
 #if 0
     const size_t blockSize = 5000000;
