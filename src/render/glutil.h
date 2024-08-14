@@ -16,7 +16,6 @@
 #define QT_NO_OPENGL_ES_2
 
 #include <QImage>
-#include <QGLWidget>
 
 #include <vector>
 #include <cassert>
@@ -271,6 +270,7 @@ class Framebuffer
 };
 
 
+#if 0
 //------------------------------------------------------------------------------
 // Texture utility
 
@@ -282,7 +282,7 @@ public:
           // bottom in addition to doing format conversion.  We need to undo
           // this using mirrored() to avoid texture coordinates coming out in
           // an unexpected way.
-        m_image(QGLWidget::convertToGLFormat(image.mirrored(false,true))),
+        m_image(QOpenGLWidget::convertToGLFormat(image.mirrored(false,true))),
         m_target(GL_TEXTURE_2D),
         m_resizeFilter(GL_LINEAR),
         m_texture(0)
@@ -356,7 +356,7 @@ private:
     GLint m_resizeFilter;
     mutable GLuint m_texture;
 };
-
+#endif
 
 //------------------------------------------------------------------------------
 // Shader utilities

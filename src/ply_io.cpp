@@ -3,6 +3,8 @@
 
 #include "ply_io.h"
 
+#include <QRegularExpression>
+
 #include <cstdint>
 
 #include "QtLogger.h"
@@ -164,8 +166,8 @@ static std::vector<PlyPointField> parsePlyPointFields(p_ply_element vertexElemen
         {"normal",    1,  TypeSpec::Vector,  "ny",     PLY_FLOAT},
         {"normal",    2,  TypeSpec::Vector,  "nz",     PLY_FLOAT},
     };
-    QRegExp vec3ComponentPattern("(.*)_?([xyz])");
-    QRegExp arrayComponentPattern("(.*)\\[([0-9]+)\\]");
+    QRegularExpression vec3ComponentPattern("(.*)_?([xyz])");
+    QRegularExpression arrayComponentPattern("(.*)\\[([0-9]+)\\]");
     size_t numStandardFields = sizeof(standardFields)/sizeof(standardFields[0]);
     std::vector<PlyPointField> fieldInfo;
     for (p_ply_property prop = ply_get_next_property(vertexElement, NULL);
@@ -199,16 +201,21 @@ static std::vector<PlyPointField> parsePlyPointFields(p_ply_element vertexElemen
             std::string displazName = propName;
             int index = 0;
             TypeSpec::Semantics semantics = TypeSpec::Array;
-            if (vec3ComponentPattern.exactMatch(propName))
+            QRegularExpressionMatch match = vec3ComponentPattern.match(propName);
+            if (match.hasMatch())
             {
-                displazName = vec3ComponentPattern.cap(1).toStdString();
-                index = vec3ComponentPattern.cap(2)[0].toLatin1() - 'x';
+                displazName = match.captured(1).toStdString();
+                index = match.captured(2)[0].toLatin1() - 'x';
                 semantics = TypeSpec::Vector;
             }
-            else if(arrayComponentPattern.exactMatch(propName))
+            else 
             {
-                displazName = arrayComponentPattern.cap(1).toStdString();
-                index = arrayComponentPattern.cap(2).toInt();
+                match = arrayComponentPattern.match(propName);
+                if (match.hasMatch())
+                {
+                    displazName = match.captured(1).toStdString();
+                    index = match.captured(2).toInt();
+                }
             }
             PlyPointField field = {displazName, index, semantics, propName, propType};
             fieldInfo.push_back(field);

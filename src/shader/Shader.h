@@ -6,16 +6,16 @@
 
 #include <QList>
 #include <QByteArray>
-#include <QGLShader>
+#include <QOpenGLShader>
 
 #include "ShaderParam.h"
 
-/// Wrapper for QGLShader, with functionality added to parse
+/// Wrapper for QOpenGLShader, with functionality added to parse
 /// the list of uniform parameters.
 class Shader
 {
     public:
-        Shader(QGLShader::ShaderType type)
+        Shader(QOpenGLShader::ShaderType type)
             : m_shader(type)
         { }
 
@@ -32,7 +32,7 @@ class Shader
         }
 
         /// Access to underlying shader
-        QGLShader* shader()
+        QOpenGLShader* shader()
         {
             return &m_shader;
         }
@@ -41,7 +41,7 @@ class Shader
 
     private:
         QList<ShaderParam> m_uniforms;
-        QGLShader m_shader;  ///< Underlying shader
+        QOpenGLShader m_shader;  ///< Underlying shader
         QByteArray m_source; ///< Non-mangled source code
 };
 

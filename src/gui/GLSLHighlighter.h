@@ -7,6 +7,7 @@
 #include <QSyntaxHighlighter>
 #include <QTextCharFormat>
 #include <QString>
+#include <QRegularExpression>
 
 /// Highlights GLSL code
 class GLSLHighlighter : public QSyntaxHighlighter
@@ -37,7 +38,7 @@ class GLSLHighlighter : public QSyntaxHighlighter
         /// Describes how text matching regexp should be formatted
         struct Rule
         {
-            QRegExp regexp;
+            QRegularExpression regexp;
             QTextCharFormat format;
         };
 
@@ -46,8 +47,8 @@ class GLSLHighlighter : public QSyntaxHighlighter
 
         QVector<Rule> m_rules;
         QTextCharFormat m_comment;
-        QRegExp m_commentBegin; // Matches a /*
-        QRegExp m_commentEnd; // Matches a */
+        QRegularExpression m_commentBegin; // Matches a /*
+        QRegularExpression m_commentEnd; // Matches a */
 };
 
 #endif // DISPLAZ_GLSL_HIGHLIGHTER_H_INCLUDED

@@ -34,16 +34,15 @@
 #include <QProgressBar>
 #include <QSplitter>
 #include <QDoubleSpinBox>
-#include <QDesktopWidget>
 #include <QDropEvent>
 #include <QLocalServer>
 #include <QMimeData>
-#include <QGLFormat>
+#include <QSurfaceFormat>
 
 //------------------------------------------------------------------------------
 // MainWindow implementation
 
-MainWindow::MainWindow(const QGLFormat& format)
+MainWindow::MainWindow(const QSurfaceFormat& format)
     : m_progressBar(0),
     m_pointView(0),
     m_shaderEditor(0),
@@ -148,7 +147,7 @@ MainWindow::MainWindow(const QGLFormat& format)
         mapper->setMapping(backgroundAct, colName);
         connect(backgroundAct, SIGNAL(triggered()), mapper, SLOT(map()));
     }
-    connect(mapper, SIGNAL(mapped(QString)),
+    connect(mapper, SIGNAL(mappedString(QString)),
             this, SLOT(setBackground(QString)));
     backMenu->addSeparator();
     QAction* backgroundCustom = backMenu->addAction(tr("&Custom"));
@@ -394,7 +393,9 @@ void MainWindow::handleMessage(QByteArray message)
 {
     QList<QByteArray> commandTokens = message.split('\n');
     if (commandTokens.empty())
+    {
         return;
+    }
     if (commandTokens[0] == "OPEN_FILES")
     {
         QList<QByteArray> flags = commandTokens[1].split('\0');
@@ -410,6 +411,7 @@ void MainWindow::handleMessage(QByteArray message)
                                QString(commandTokens[i]));
                 continue;
             }
+            printf("%s %s\n", pathAndLabel[0].data(), pathAndLabel[1].data());
             FileLoadInfo loadInfo(pathAndLabel[0], pathAndLabel[1], replaceLabel);
             loadInfo.deleteAfterLoad = deleteAfterLoad;
             loadInfo.mutateExisting = mutateExisting;
@@ -422,8 +424,9 @@ void MainWindow::handleMessage(QByteArray message)
     }
     else if (commandTokens[0] == "UNLOAD_FILES")
     {
+#if 0
         QString regex_str = commandTokens[1];
-        QRegExp regex(regex_str, Qt::CaseSensitive, QRegExp::WildcardUnix);
+        QRegularExpression regex(regex_str, Qt::CaseSensitive, QRegularExpression::WildcardUnix);
         if (!regex.isValid())
         {
             g_logger.error("Invalid pattern in -unload command: '%s': %s",
@@ -432,11 +435,13 @@ void MainWindow::handleMessage(QByteArray message)
         }
         m_geometries->unloadFiles(regex);
         m_pointView->removeAnnotations(regex);
+#endif
     }
     else if (commandTokens[0] == "SET_VIEW_LABEL")
     {
+#if 0
         QString regex_str = commandTokens[1];
-        QRegExp regex(regex_str, Qt::CaseSensitive, QRegExp::FixedString);
+        QRegularExpression regex(regex_str, Qt::CaseSensitive, QRegularExpression::FixedString);
         if (!regex.isValid())
         {
             g_logger.error("Invalid pattern in -unload command: '%s': %s",
@@ -446,6 +451,7 @@ void MainWindow::handleMessage(QByteArray message)
         QModelIndex index = m_geometries->findLabel(regex);
         if (index.isValid())
             m_pointView->centerOnGeometry(index);
+#endif
     }
     else if (commandTokens[0] == "ANNOTATE")
     {
@@ -797,10 +803,7 @@ void MainWindow::screenShot()
     // Grabbing the desktop directly using grabWindow() isn't great, but makes
     // this much simpler to implement.  (Other option: use
     // m_pointView->renderPixmap() and turn off incremental rendering.)
-    QPoint tl = m_pointView->mapToGlobal(QPoint(0,0));
-    QPixmap sshot = QPixmap::grabWindow(QApplication::desktop()->winId(),
-                                        tl.x(), tl.y(),
-                                        m_pointView->width(), m_pointView->height());
+    QPixmap sshot = grab();
     QString fileName = QFileDialog::getSaveFileName(
         this,
         tr("Save screen shot"),

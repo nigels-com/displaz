@@ -13,18 +13,21 @@
 
 
 #include <QVector>
-#include <QGLWidget>
 #include <QModelIndex>
+#include <QOpenGLWidget>
+#include <QRegularExpression>
 
 #include "DrawCostModel.h"
 #include "InteractiveCamera.h"
 #include "geometrycollection.h"
 #include "Annotation.h"
+#include "Enable.h"
+#include "ShaderProgram.h"
 
 class QGLShaderProgram;
 class QItemSelectionModel;
 class QTimer;
-class QGLFormat;
+class QSurfaceFormat;
 
 class Enable;
 class ShaderProgram;
@@ -32,12 +35,12 @@ struct TransformState;
 
 //------------------------------------------------------------------------------
 /// OpenGL-based viewer widget for point clouds
-class View3D : public QGLWidget
+class View3D : public QOpenGLWidget
 {
     Q_OBJECT
     public:
-        View3D(GeometryCollection* geometries, const QGLFormat& format, QWidget *parent = NULL);
-        ~View3D();
+        View3D(GeometryCollection* geometries, const QSurfaceFormat& format, QWidget *parent = NULL);
+        ~View3D() = default;
 
         Enable& enable() const { return *m_enable; }
 
@@ -60,8 +63,8 @@ class View3D : public QGLWidget
         void addAnnotation(const QString& label, const QString& text,
                            const Imath::V3d& pos);
 
-        /// Remove all anontations who's label matches the given QRegExp
-        void removeAnnotations(const QRegExp& labelRegex);
+        /// Remove all anontations who's label matches the given QRegularExpression
+        void removeAnnotations(const QRegularExpression& labelRegex);
 
 
     public slots:
@@ -80,9 +83,9 @@ class View3D : public QGLWidget
 
     protected:
         // Qt OpenGL callbacks
-        void initializeGL();
-        void resizeGL(int w, int h);
-        void paintGL();
+        void initializeGL() override;
+        void resizeGL(int w, int h) override;
+        void paintGL() override;
 
         // Qt event callbacks
         void mousePressEvent(QMouseEvent* event);
@@ -106,7 +109,7 @@ class View3D : public QGLWidget
         void drawCursor(const TransformState& transState, const V3d& P, float centerPointRadius) const;
 
         void initAxes();
-        void drawAxes() const;
+        void drawAxes();
 
         void initGrid(const float scale);
         void drawGrid() const;
@@ -170,10 +173,10 @@ class View3D : public QGLWidget
         /// Controller for amount of geometry to draw
         DrawCostModel m_drawCostModel;
         /// GL textures
-        Texture m_drawAxesBackground;
-        Texture m_drawAxesLabelX;
-        Texture m_drawAxesLabelY;
-        Texture m_drawAxesLabelZ;
+        std::unique_ptr<QOpenGLTexture> m_drawAxesBackground;
+        std::unique_ptr<QOpenGLTexture> m_drawAxesLabelX;
+        std::unique_ptr<QOpenGLTexture> m_drawAxesLabelY;
+        std::unique_ptr<QOpenGLTexture> m_drawAxesLabelZ;
 
         /// Shaders for interface geometry
         std::unique_ptr<ShaderProgram> m_cursorShader;

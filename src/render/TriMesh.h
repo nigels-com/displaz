@@ -7,13 +7,15 @@
 #include <vector>
 #include <memory>
 
-#include <QString>
-#include <QMetaType>
-
-#include "Geometry.h"
 #include "glutil.h"
 
-class QGLShaderProgram;
+#include <QString>
+#include <QMetaType>
+#include <QOpenGLTexture>
+
+#include "Geometry.h"
+
+class QOpenGLShaderProgram;
 
 
 /// Mesh of triangles or line segment edges, in indexed format for OpenGL
@@ -26,9 +28,9 @@ class TriMesh : public Geometry
 
         virtual void initializeGL();
 
-        virtual void drawFaces(QGLShaderProgram& prog,
+        virtual void drawFaces(QOpenGLShaderProgram& prog,
                                const TransformState& transState) const;
-        virtual void drawEdges(QGLShaderProgram& prog,
+        virtual void drawEdges(QOpenGLShaderProgram& prog,
                                const TransformState& transState) const;
 
         virtual size_t pointCount() const { return 0; }
@@ -64,7 +66,7 @@ class TriMesh : public Geometry
         /// Per-vertex texture coordinates
         std::vector<float> m_texcoords;
         /// Optional texture
-        std::unique_ptr<Texture> m_texture;
+        std::unique_ptr<QOpenGLTexture> m_texture;
         /// triples of indices into vertex array
         std::vector<unsigned int> m_triangles;
         std::vector<unsigned int> m_edges;

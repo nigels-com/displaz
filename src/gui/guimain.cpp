@@ -4,9 +4,8 @@
 #include "MainWindow.h"
 
 //#include <QDataStream>
-#include <QTextCodec>
 #include <QApplication>
-#include <QGLFormat>
+#include <QSurfaceFormat>
 
 #include "argparse.h"
 #include "config.h"
@@ -80,13 +79,14 @@ int guimain(int argc, char* argv[])
     // Multisampled antialiasing - this makes rendered point clouds look much
     // nicer, but also makes the render much slower, especially on lower
     // powered graphics cards.
-    QGLFormat f = QGLFormat::defaultFormat();
-    f.setVersion( 3, 2 );
-    f.setProfile( QGLFormat::CoreProfile ); // Requires >=Qt-4.8.0
-    //f.setSampleBuffers(true);
-    QGLFormat::setDefaultFormat(f);
+    QSurfaceFormat format = QSurfaceFormat::defaultFormat();
+    format.setDepthBufferSize(24);
+    format.setStencilBufferSize(8);
+    format.setSwapBehavior(QSurfaceFormat::DoubleBuffer);
+    format.setVersion(3, 2);
+    format.setProfile(QSurfaceFormat::CoreProfile);
 
-    MainWindow window(f);
+    MainWindow window(format);
 
     // Inherit instance lock (or debug: acquire it)
     if (!serverName.empty())

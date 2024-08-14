@@ -4,11 +4,11 @@
 #ifndef DISPLAZ_PLY_IO_INCLUDED
 #define DISPLAZ_PLY_IO_INCLUDED
 
+#include <QString>
+
 #include <vector>
 
 #include <rply/rply.h>
-
-#include <QRegExp>
 
 #include "typespec.h"
 #include "GeomField.h"

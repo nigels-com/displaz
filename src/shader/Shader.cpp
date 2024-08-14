@@ -44,8 +44,8 @@ bool Shader::compileSourceCode(const QByteArray& src)
     QByteArray defines;
     switch (m_shader.shaderType())
     {
-        case QGLShader::Vertex:   defines += "#define VERTEX_SHADER\n";   break;
-        case QGLShader::Fragment: defines += "#define FRAGMENT_SHADER\n"; break;
+        case QOpenGLShader::Vertex:   defines += "#define VERTEX_SHADER\n";   break;
+        case QOpenGLShader::Fragment: defines += "#define FRAGMENT_SHADER\n"; break;
     }
     defines += makeBlacklistDefines();
     QByteArray modifiedSrc = src;
@@ -69,21 +69,23 @@ bool Shader::compileSourceCode(const QByteArray& src)
     m_source = src;
     // Search source code looking for uniform variables
     QStringList lines = QString(src).split('\n');
-    QRegExp re("uniform +([a-zA-Z_][a-zA-Z_0-9]*) +([a-zA-Z_][a-zA-Z_0-9]*) +=(.+); *//# *(.*)",
-               Qt::CaseSensitive, QRegExp::RegExp2);
+    QRegularExpression re("uniform +([a-zA-Z_][a-zA-Z_0-9]*) +([a-zA-Z_][a-zA-Z_0-9]*) +=(.+); *//# *(.*)");
     for (int lineIdx = 0; lineIdx < lines.size(); ++lineIdx)
     {
-        if (!re.exactMatch(lines[lineIdx]))
+        const auto match = re.match(lines[lineIdx]);
+        if (!match.hasMatch())
+        {
             continue;
-        QByteArray typeStr = re.cap(1).toUtf8().constData();
+        }
+        QByteArray typeStr = match.captured(1).toUtf8().constData();
         ShaderParam::Variant defaultValue;
         if (typeStr == "float")
         {
-            defaultValue = re.cap(3).trimmed().toDouble();
+            defaultValue = match.captured(3).trimmed().toDouble();
         }
         else if (typeStr == "int")
         {
-            defaultValue = re.cap(3).trimmed().toInt();
+            defaultValue = match.captured(3).trimmed().toInt();
         }
         else if (typeStr == "vec3")
         {
@@ -91,9 +93,9 @@ bool Shader::compileSourceCode(const QByteArray& src)
         }
         else
             continue;
-        ShaderParam param(re.cap(2).toUtf8().constData(), defaultValue);
+        ShaderParam param(match.captured(2).toUtf8().constData(), defaultValue);
         QMap<QString, QString>& kvPairs = param.kvPairs;
-        QStringList pairList = re.cap(4).split(';');
+        QStringList pairList = match.captured(4).split(';');
         for (int i = 0; i < pairList.size(); ++i)
         {
             QStringList keyAndVal = pairList[i].split('=');

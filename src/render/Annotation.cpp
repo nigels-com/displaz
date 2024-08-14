@@ -13,14 +13,14 @@
 #include <QPainterPath>
 
 /// Creates and returns a texture containing some text.
-static std::unique_ptr<Texture> makeTextureFromText(const QString& text)
+static std::unique_ptr<QOpenGLTexture> makeTextureFromText(const QString& text)
 {
     QFont font("Sans", 13);
     // Text outline makes the text thinner so we have to bold it
     font.setWeight(QFont::DemiBold);
     QFontMetrics fm(font);
-    int width = fm.width(text);
-    int height = fm.ascent() + fm.descent();
+    const int width = fm.horizontalAdvance(text);
+    const int height = fm.ascent() + fm.descent();
     QImage image(width, height, QImage::Format_RGBA8888);
     image.fill(Qt::transparent);
     QPainter painter(&image);
@@ -37,10 +37,10 @@ static std::unique_ptr<Texture> makeTextureFromText(const QString& text)
     QPainterPath path;
     path.addText(0, height, font, text);
     painter.drawPath(path);
-    std::unique_ptr<Texture> texture(new Texture(image));
+    std::unique_ptr<QOpenGLTexture> texture = std::make_unique<QOpenGLTexture>(image);
     // The text is blurry when using GL_LINEAR. I suspect this is a result of
     // floating point inaccuracies in the vertex shader.
-    texture->setResizeFilter(GL_NEAREST);
+    texture->setMinMagFilters(QOpenGLTexture::Nearest, QOpenGLTexture::Nearest);
     return texture;
 }
 
@@ -105,7 +105,7 @@ Annotation::~Annotation()
     glDeleteVertexArrays(1, &m_vao);
 }
 
-void Annotation::draw(QGLShaderProgram& annotationShaderProg,
+void Annotation::draw(QOpenGLShaderProgram& annotationShaderProg,
                       const TransformState& transState) const
 {
     glBindVertexArray(m_vao);
