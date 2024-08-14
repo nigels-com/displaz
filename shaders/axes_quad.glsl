@@ -1,4 +1,5 @@
 #version 150
+
 // Copyright 2015, Christopher J. Foster and the other displaz contributors.
 // Use of this code is governed by the BSD-style license found in LICENSE.txt
 
@@ -14,7 +15,6 @@ uniform sampler2D texture0;
 in vec2 position;
 in vec2 texCoord;
 
-// Point color which will be picked up by the fragment shader
 out vec2 textureCoords;
 
 void main()

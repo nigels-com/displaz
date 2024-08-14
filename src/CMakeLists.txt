@@ -11,14 +11,6 @@ include_directories(BEFORE
     ${THIRDPARTY_INSTALL_DIR}/include
 )
 
-include_directories(
-    ${Qt5Core_INCLUDE_DIRS}
-    ${Qt5GUI_INCLUDE_DIRS}
-    ${Qt5Network_INCLUDE_DIRS}
-    ${Qt5OpenGL_INCLUDE_DIRS}
-    ${Qt5Widgets_INCLUDE_DIRS}
-)
-
 #------------------------------------------------------------------------------
 # Sources
 
@@ -32,7 +24,7 @@ set(util_srcs
 )
 
 macro(displaz_qt_wrap_cpp moc_out_srcs)
-    qt5_wrap_cpp(${moc_out_srcs} ${ARGN})
+    qt6_wrap_cpp(${moc_out_srcs} ${ARGN})
 endmacro()
 
 # Interprocess communication
@@ -110,7 +102,7 @@ set(gui_srcs
     ../thirdparty/polypartition/polypartition.cpp
 )
 
-qt5_add_resources(RCC_GENERATED resource.qrc)
+qt6_add_resources(RCC_GENERATED resource.qrc)
 
 if(WIN32)
     list(APPEND gui_srcs ../package/windows_resources.rc)
@@ -150,14 +142,14 @@ endif()
 #-------------------------------------------------------------------------------
 # Library dependencies
 target_link_libraries(displaz
-    Qt5::Core Qt5::Gui Qt5::OpenGL
-    Qt5::Network Qt5::Widgets
+    Qt6::Core Qt6::Gui Qt6::OpenGLWidgets 
+    Qt6::Network Qt6::Widgets
     OpenGL::GL ${GLEW_LIBRARIES}
     ${ILMBASE_LIBRARIES}
 )
 if (TARGET displaz_com)
     target_link_libraries(displaz_com
-        Qt5::Core Qt5::Network
+        Qt6::Core Qt6::Widgets Qt6::Network
     )
 endif()
 if (Qt5_POSITION_INDEPENDENT_CODE)
@@ -240,7 +232,7 @@ if (DISPLAZ_USE_TESTS)
 
     # Interprocess tests require special purpose executables
     add_executable(InterProcessLock_test InterProcessLock_test.cpp util.cpp InterProcessLock.cpp)
-    target_link_libraries(InterProcessLock_test Qt5::Core)
-    target_link_libraries(unit_tests Qt5::Core)
+    target_link_libraries(InterProcessLock_test Qt6::Gui Qt6::Core)
+    target_link_libraries(unit_tests Qt6::Gui Qt6::Core)
     add_test(NAME InterProcessLock_test COMMAND InterProcessLock_test master)
 endif()

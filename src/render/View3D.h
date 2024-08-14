@@ -13,8 +13,9 @@
 
 
 #include <QVector>
-#include <QGLWidget>
 #include <QModelIndex>
+#include <QOpenGLWidget>
+#include <QRegularExpression>
 
 #include "DrawCostModel.h"
 #include "InteractiveCamera.h"
@@ -26,7 +27,7 @@
 class QOpenGLShaderProgram;
 class QItemSelectionModel;
 class QTimer;
-class QGLFormat;
+class QSurfaceFormat;
 
 class Enable;
 class ShaderProgram;
@@ -34,11 +35,11 @@ struct TransformState;
 
 //------------------------------------------------------------------------------
 /// OpenGL-based viewer widget for point clouds
-class View3D : public QGLWidget
+class View3D : public QOpenGLWidget
 {
     Q_OBJECT
     public:
-        View3D(GeometryCollection* geometries, const QGLFormat& format, QWidget *parent = NULL);
+        View3D(GeometryCollection* geometries, const QSurfaceFormat& format, QWidget *parent = NULL);
         ~View3D() = default;
 
         Enable& enable() const { return *m_enable; }
@@ -62,8 +63,8 @@ class View3D : public QGLWidget
         void addAnnotation(const QString& label, const QString& text,
                            const Imath::V3d& pos);
 
-        /// Remove all anontations who's label matches the given QRegExp
-        void removeAnnotations(const QRegExp& labelRegex);
+        /// Remove all anontations who's label matches the given QRegularExpression
+        void removeAnnotations(const QRegularExpression& labelRegex);
 
 
     public slots:

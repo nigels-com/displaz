@@ -59,7 +59,7 @@ void HookManager::connectHook(QByteArray eventSpec, HookFormatter* formatter)
     if(!taken)
     {
         m_eventSpecs.append(requestedSpec);
-        m_events.append(new QShortcut(m_eventSpecs[numberEvents], qobject_cast<QWidget*>(this->parent())));
+        m_events.append(new QShortcut(m_eventSpecs[numberEvents], parent()));
         m_hooksSignedUp.append(1);
         connect(m_events[numberEvents], SIGNAL(activated()), formatter, SLOT(hookActivated()));
         formatter->setEventId(numberEvents);

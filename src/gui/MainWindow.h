@@ -17,7 +17,7 @@ class QSignalMapper;
 class QPlainTextEdit;
 class QProgressBar;
 class QModelIndex;
-class QGLFormat;
+class QSurfaceFormat;
 
 class HelpDialog;
 class View3D;
@@ -36,7 +36,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
     public:
-        MainWindow(const QGLFormat& format);
+        MainWindow(const QSurfaceFormat& format);
 
         /// Hint at an appropriate size
         QSize sizeHint() const;

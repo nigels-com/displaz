@@ -624,6 +624,7 @@ void PointArray::initializeGL()
     GLuint vao;
     glGenVertexArrays(1, &vao);
     setVAO("points", vao);
+//    objectLabel(GL_VERTEX_ARRAY, vao, "points");
 
     GLuint vbo;
     glGenBuffers(1, &vbo);

@@ -8,8 +8,8 @@
 GLSLHighlighter::GLSLHighlighter(QTextDocument *parent)
     : QSyntaxHighlighter(parent)
 {
-    m_commentBegin = QRegExp("/\\*");
-    m_commentEnd = QRegExp("\\*/");
+    m_commentBegin = QRegularExpression("/\\*");
+    m_commentEnd = QRegularExpression("\\*/");
     // Keywords
     addRule("#a71d5d", TextStyle::Plain, "\\b(defined|attribute|const|uniform|varying|layout|centroid|flat|smooth|noperspective|patch|sample|break|continue|do|for|while|switch|case|default|if|else|subroutine|in|out|inout|float|double|int|void|bool|true|false|invariant|discard|return|mat2|mat3|mat4|dmat2|dmat3|dmat4|mat2x2|mat2x3|mat2x4|dmat2x2|dmat2x3|dmat2x4|mat3x2|mat3x3|mat3x4|dmat3x2|dmat3x3|dmat3x4|mat4x2|mat4x3|mat4x4|dmat4x2|dmat4x3|dmat4x4|vec2|vec3|vec4|ivec2|ivec3|ivec4|bvec2|bvec3|bvec4|dvec2|dvec3|dvec4|uint|uvec2|uvec3|uvec4|lowp|mediump|highp|precision|sampler1D|sampler2D|sampler3D|samplerCube|sampler1DShadow|sampler2DShadow|samplerCubeShadow|sampler1DArray|sampler2DArray|sampler1DArrayShadow|sampler2DArrayShadow|isampler1D|isampler2D|isampler3D|isamplerCube|isampler1DArray|isampler2DArray|usampler1D|usampler2D|usampler3D|usamplerCube|usampler1DArray|usampler2DArray|sampler2DRect|sampler2DRectShadow|isampler2DRect|usampler2DRect|samplerBuffer|isamplerBuffer|usamplerBuffer|sampler2DMS|isampler2DMS|usampler2DMS|sampler2DMSArray|isampler2DMSArray|usampler2DMSArray|samplerCubeArray|samplerCubeArrayShadow|isamplerCubeArray|usamplerCubeArray|struct|common|partition|active|asm|class|union|enum|typedef|template|this|packed|goto|inline|noinline|volatile|public|static|extern|external|interface|long|short|half|fixed|unsigned|superp|input|output|hvec2|hvec3|hvec4|fvec2|fvec3|fvec4|sampler3DRect|filter|image1D|image2D|image3D|imageCube|iimage1D|iimage2D|iimage3D|iimageCube|uimage1D|uimage2D|uimage3D|uimageCube|image1DArray|image2DArray|iimage1DArray|iimage2DArray|uimage1DArray|uimage2DArray|image1DShadow|image2DShadow|image1DArrayShadow|image2DArrayShadow|imageBuffer|iimageBuffer|uimageBuffer|sizeof|cast|namespace|using|row_major)\\b");
     // Builtin variables
@@ -46,16 +46,20 @@ GLSLHighlighter::GLSLHighlighter(QTextDocument *parent)
 
 void GLSLHighlighter::highlightBlock(const QString& text)
 {
-    foreach (const Rule& rule, m_rules)
+    for (const auto& rule : m_rules)
     {
-        int index = rule.regexp.indexIn(text);
+        QRegularExpressionMatch match = rule.regexp.match(text);
+        qsizetype index = match.capturedStart();
         while (index >= 0)
         {
-            int length = rule.regexp.matchedLength();
+            qsizetype length = match.capturedLength();
             setFormat(index, length, rule.format);
-            index = rule.regexp.indexIn(text, index + length);
+            match = rule.regexp.match(text, index + length);
+            index = match.capturedStart();
         }
     }
+#if 0
+// TODO
     setCurrentBlockState(BlockState::Default);
     // Highlight multiline comments
     int beginIndex = 0;
@@ -77,6 +81,7 @@ void GLSLHighlighter::highlightBlock(const QString& text)
         setFormat(beginIndex, length, m_comment);
         beginIndex = m_commentBegin.indexIn(text, beginIndex + length);
     }
+#endif
 }
 
 void GLSLHighlighter::addRule(const QString& color, TextStyle style,
@@ -87,6 +92,6 @@ void GLSLHighlighter::addRule(const QString& color, TextStyle style,
     format.setForeground(QColor(color));
     format.setFontItalic(style == TextStyle::Italic);
     rule.format = format;
-    rule.regexp = QRegExp(pattern);
+    rule.regexp = QRegularExpression(pattern);
     m_rules.append(rule);
 }

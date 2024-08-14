@@ -19,7 +19,7 @@ IpcChannel::IpcChannel(QLocalSocket* socket, QObject* parent)
     m_socket->setParent(this);
     connect(m_socket, SIGNAL(readyRead()), this, SLOT(readReadyData()));
     connect(m_socket, SIGNAL(disconnected()), this, SLOT(handleDisconnect()));
-    connect(m_socket, SIGNAL(error(QLocalSocket::LocalSocketError)),
+    connect(m_socket, SIGNAL(errorOccurred(QLocalSocket::LocalSocketError)),
             this, SLOT(handleError(QLocalSocket::LocalSocketError)));
 }
 
@@ -156,7 +156,7 @@ void IpcChannel::handleError(QLocalSocket::LocalSocketError errorCode)
 
 void IpcChannel::handleDisconnect()
 {
-    disconnect(m_socket, SIGNAL(error(QLocalSocket::LocalSocketError)),
+    disconnect(m_socket, SIGNAL(errorOccurred(QLocalSocket::LocalSocketError)),
                 this, SLOT(handleError(QLocalSocket::LocalSocketError)));
     if (!m_message.isEmpty())
         qWarning() << "Ignoring partial message: " << m_message;

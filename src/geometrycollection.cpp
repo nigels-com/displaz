@@ -6,7 +6,7 @@
 #include "tinyformat.h"
 #include "fileloader.h"
 
-#include <QRegExp>
+#include <QRegularExpression>
 #include <QThread>
 #include <QDebug>
 
@@ -25,17 +25,20 @@ void GeometryCollection::clear()
     }
 }
 
-int GeometryCollection::findMatchingRow(const QRegExp & filenameRegex)
+int GeometryCollection::findMatchingRow(const QRegularExpression & filenameRegex)
 {
     for (unsigned row = 0; row < m_geometries.size(); row++)
     {
-        if (filenameRegex.exactMatch(m_geometries[row]->label()))
+        const auto match = filenameRegex.match(m_geometries[row]->label());
+        if (match.hasMatch())
+        {
             return row;
+        }
     }
     return -1;
 }
 
-void GeometryCollection::unloadFiles(const QRegExp & filenameRegex)
+void GeometryCollection::unloadFiles(const QRegularExpression & filenameRegex)
 {
     while (true)
     {
@@ -48,7 +51,7 @@ void GeometryCollection::unloadFiles(const QRegExp & filenameRegex)
     }
 }
 
-QModelIndex GeometryCollection::findLabel(const QRegExp & labelPattern)
+QModelIndex GeometryCollection::findLabel(const QRegularExpression & labelPattern)
 {
     int row = findMatchingRow(labelPattern);
     return (row == -1) ? QModelIndex() : createIndex(row, 0);
@@ -80,7 +83,9 @@ QVariant GeometryCollection::data(const QModelIndex & index, int role) const
 Qt::ItemFlags GeometryCollection::flags(const QModelIndex& index) const
 {
     if (!index.isValid())
-        return 0;
+    {
+        return Qt::NoItemFlags;
+    }
     return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
 }
 

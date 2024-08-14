@@ -87,20 +87,7 @@ endif()
 
 find_package(OpenGL REQUIRED)
 
-find_package(Qt5Core REQUIRED)
-find_package(Qt5Gui REQUIRED)
-find_package(Qt5Network REQUIRED)
-find_package(Qt5OpenGL REQUIRED)
-find_package(Qt5Widgets REQUIRED)
-add_definitions(${Qt5Core_DEFINITIONS})
-add_definitions(${Qt5Gui_DEFINITIONS})
-add_definitions(${Qt5Network_DEFINITIONS})
-add_definitions(${Qt5Widgets_DEFINITIONS})
-
-if (NOT WIN32)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Qt5Core_EXECUTABLE_COMPILE_FLAGS} ${Qt5Gui_EXECUTABLE_COMPILE_FLAGS} ${Qt5Network_EXECUTABLE_COMPILE_FLAGS} ${Qt5OpenGL_EXECUTABLE_COMPILE_FLAGS} ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS}")
-endif()
-
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Network OpenGLWidgets OpenGL)
 
 include_directories(${IMATH_INCLUDE_DIRS})
 
