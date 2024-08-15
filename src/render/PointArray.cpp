@@ -624,6 +624,7 @@ void PointArray::initializeGL()
     GLuint vao;
     glGenVertexArrays(1, &vao);
     setVAO("points", vao);
+//    objectLabel(GL_VERTEX_ARRAY, vao, "points");
 
     GLuint vbo;
     glGenBuffers(1, &vbo);
@@ -733,7 +734,7 @@ DrawCount PointArray::drawPoints(QOpenGLShaderProgram& prog, const TransformStat
         glBufferData(GL_ARRAY_BUFFER, nodeBufferSize, NULL, GL_STREAM_DRAW);
 
         GLintptr bufferOffset = 0;
-        for (size_t i = 0, k = 0; i < m_fields.size(); k+=m_fields[i].spec.arraySize(), ++i)
+        for (size_t i = 0, k = 0; i < m_fields.size(); k += m_fields[i].spec.arraySize(), ++i)
         {
             const GeomField& field = m_fields[i];
             const int arraySize = field.spec.arraySize();
@@ -759,7 +760,9 @@ DrawCount PointArray::drawPoints(QOpenGLShaderProgram& prog, const TransformStat
             {
                 const ShaderAttribute* attr = attributes[k+j];
                 if (!attr)
+                {
                     continue;
+                }
 
                 GLintptr arrayElementOffset = bufferOffset + j*field.spec.elsize;
 

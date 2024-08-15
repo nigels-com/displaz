@@ -187,11 +187,11 @@ class View3D : public QOpenGLWidget
         std::unique_ptr<ShaderProgram> m_boundingBoxShader;
         std::unique_ptr<ShaderProgram> m_annotationShader;
 
-        unsigned int m_cursorVertexArray;
-        unsigned int m_axesVertexArray;
-        unsigned int m_gridVertexArray;
-        unsigned int m_quadVertexArray;
-        unsigned int m_quadLabelVertexArray;
+        GLuint m_cursorVertexArray = 0;
+        GLuint m_axesVertexArray = 0;
+        GLuint m_gridVertexArray = 0;
+        GLuint m_quadVertexArray = 0;
+        GLuint m_quadLabelVertexArray = 0;
 
         double m_devicePixelRatio;
 };

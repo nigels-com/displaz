@@ -82,7 +82,7 @@ int guimain(int argc, char* argv[])
     QSurfaceFormat format = QSurfaceFormat::defaultFormat();
     format.setDepthBufferSize(24);
     format.setStencilBufferSize(8);
-    format.setSwapBehavior(QSurfaceFormat::DoubleBuffer);
+//  format.setSwapBehavior(QSurfaceFormat::DoubleBuffer);
     format.setVersion(3, 2);
     format.setProfile(QSurfaceFormat::CoreProfile);
 

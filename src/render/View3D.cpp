@@ -28,6 +28,120 @@
 #include "tinyformat.h"
 #include "util.h"
 
+void GLAPIENTRY
+MessageCallback( GLenum source,
+                 GLenum type,
+                 GLuint id,
+                 GLenum severity,
+                 GLsizei length,
+                 const GLchar* message,
+                 const void* userParam )
+{
+  fprintf( stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+           ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
+            type, severity, message );
+}
+
+void APIENTRY MessageCallback2(GLenum source, GLenum type, GLuint id,
+                            GLenum severity, GLsizei length,
+                            const GLchar *msg, const void *data)
+{
+    char* _source;
+    char* _type;
+    char* _severity;
+
+    switch (source) {
+        case GL_DEBUG_SOURCE_API:
+        _source = "API";
+        break;
+
+        case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+        _source = "WINDOW SYSTEM";
+        break;
+
+        case GL_DEBUG_SOURCE_SHADER_COMPILER:
+        _source = "SHADER COMPILER";
+        break;
+
+        case GL_DEBUG_SOURCE_THIRD_PARTY:
+        _source = "THIRD PARTY";
+        break;
+
+        case GL_DEBUG_SOURCE_APPLICATION:
+        _source = "APPLICATION";
+        break;
+
+        case GL_DEBUG_SOURCE_OTHER:
+        _source = "UNKNOWN";
+        break;
+
+        default:
+        _source = "UNKNOWN";
+        break;
+    }
+
+    switch (type) {
+        case GL_DEBUG_TYPE_ERROR:
+        _type = "ERROR";
+        break;
+
+        case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+        _type = "DEPRECATED BEHAVIOR";
+        break;
+
+        case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+        _type = "UDEFINED BEHAVIOR";
+        break;
+
+        case GL_DEBUG_TYPE_PORTABILITY:
+        _type = "PORTABILITY";
+        break;
+
+        case GL_DEBUG_TYPE_PERFORMANCE:
+        _type = "PERFORMANCE";
+        break;
+
+        case GL_DEBUG_TYPE_OTHER:
+        _type = "OTHER";
+        return;
+        break;
+
+        case GL_DEBUG_TYPE_MARKER:
+        _type = "MARKER";
+        break;
+
+        default:
+        _type = "UNKNOWN";
+        break;
+    }
+
+    switch (severity) {
+        case GL_DEBUG_SEVERITY_HIGH:
+        _severity = "HIGH";
+        break;
+
+        case GL_DEBUG_SEVERITY_MEDIUM:
+        _severity = "MEDIUM";
+        break;
+
+        case GL_DEBUG_SEVERITY_LOW:
+        _severity = "LOW";
+        break;
+
+        case GL_DEBUG_SEVERITY_NOTIFICATION:
+        _severity = "NOTIFICATION";
+        return;
+        break;
+
+        default:
+        _severity = "UNKNOWN";
+        break;
+    }
+
+    printf("%d: %s of %s severity, raised from %s: %s\n",
+            id, _type, _severity, _source, msg);
+}
+
 //------------------------------------------------------------------------------
 View3D::View3D(GeometryCollection* geometries, const QSurfaceFormat& format, QWidget *parent)
     : QOpenGLWidget(parent),
@@ -47,23 +161,10 @@ View3D::View3D(GeometryCollection* geometries, const QSurfaceFormat& format, QWi
     m_selectionModel(0),
     m_shaderParamsUI(0),
     m_incrementalFrameTimer(0),
-    m_incrementalFramebuffer(),
     m_incrementalDraw(false),
-    m_cursorVertexArray(0),
-    m_axesVertexArray(0),
-    m_gridVertexArray(0),
-    m_quadVertexArray(0),
-    m_quadLabelVertexArray(0),
     m_devicePixelRatio(1.0)
 {
-    // {
-    //     QSurfaceFormat format;
-    //     format.setDepthBufferSize(24);
-    //     format.setStencilBufferSize(8);
-    //     format.setVersion(3, 2);
-    //     format.setProfile(QSurfaceFormat::CoreProfile);
-        setFormat(format);
-    // }
+    setFormat(format);
 
     connect(m_geometries, SIGNAL(layoutChanged()),                      this, SLOT(geometryChanged()));
     //connect(m_geometries, SIGNAL(destroyed()),                          this, SLOT(modelDestroyed()));
@@ -102,8 +203,6 @@ void View3D::geometryChanged()
 /// Initialize all geometry in m_geometries for indices i in [begin,end)
 void View3D::initializeGLGeometry(int begin, int end)
 {
-    glCheckError();
-
     const GeometryCollection::GeometryVec& geoms = m_geometries->get();
     for (int i = begin; i < end; ++i)
     {
@@ -121,12 +220,14 @@ void View3D::initializeGLGeometry(int begin, int end)
 
 void View3D::dataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight)
 {
+    makeCurrent();
     initializeGLGeometry(topLeft.row(), bottomRight.row()+1);
     geometryChanged();
 }
 
 void View3D::geometryInserted(const QModelIndex& /*unused*/, int firstRow, int lastRow)
 {
+    makeCurrent();
     // NB: Geometry inserted at indices i in [firstRow,lastRow]  (end inclusive)
     initializeGLGeometry(firstRow, lastRow+1);
     if (m_geometries->rowCount() == (lastRow+1-firstRow) && !m_explicitCursorPos)
@@ -267,8 +368,6 @@ double View3D::getDevicePixelRatio()
 
 void View3D::initializeGL()
 {
-    printf("View3D::initializeGL\n");
-
     makeCurrent();
 
     if (glewInit() != GLEW_OK)
@@ -278,14 +377,10 @@ void View3D::initializeGL()
         return;
     }
 
-//    setFormat(format);
+    glEnable              ( GL_DEBUG_OUTPUT );
+    glDebugMessageCallback( MessageCallback2, 0 );
 
     glCheckError();
-
-    m_drawAxesBackground = std::make_unique<QOpenGLTexture>(QImage(":/resource/axes.png"));
-    m_drawAxesLabelX = std::make_unique<QOpenGLTexture>(QImage(":/resource/x.png"));
-    m_drawAxesLabelY = std::make_unique<QOpenGLTexture>(QImage(":/resource/y.png"));
-    m_drawAxesLabelZ = std::make_unique<QOpenGLTexture>(QImage(":/resource/z.png"));
 
     m_shaderProgram = std::make_unique<ShaderProgram>();
     connect(m_shaderProgram.get(), SIGNAL(uniformValuesChanged()),
@@ -334,8 +429,6 @@ void View3D::initializeGL()
     m_annotationShader.reset(new ShaderProgram());
     m_annotationShader->setShaderFromSourceFile("shaders:annotation.glsl");
 
-    glCheckError();
-
     double dPR = getDevicePixelRatio();
     int w = width() * dPR;
     int h = height() * dPR;
@@ -359,8 +452,6 @@ void View3D::initializeGL()
 
 void View3D::resizeGL(int w, int h)
 {
-    printf("View3D::resizeGL %d %d\n", w, h);
-
     //Note: This function receives "device pixel sizes" for correct OpenGL viewport setup
     //      Under OS X with retina display, this becomes important as it is 2x the width() or height()
     //      of the normal window (there is a devicePixelRatio() function to deal with this).
@@ -382,16 +473,12 @@ void View3D::resizeGL(int w, int h)
 
 void View3D::paintGL()
 {
-    printf("View3D::paintGL\n");
-
     if (m_badOpenGL)
     {
         return;
     }
 
-//    glDrawBuffer(GL_BACK);
-
-    glCheckError();
+    PushDebugGroup painGL("paintGL");
 
     QElapsedTimer frameTimer;
     frameTimer.start();
@@ -409,8 +496,6 @@ void View3D::paintGL()
         resizeGL(w, h);
     }
 
-    glCheckError();
-
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_incrementalFramebuffer.id());
 
     //--------------------------------------------------
@@ -418,8 +503,6 @@ void View3D::paintGL()
     TransformState transState(Imath::V2i(w, h),
                               m_camera.projectionMatrix(),
                               m_camera.viewMatrix());
-
-    glCheckError();
 
     glClearDepth(1.0f);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -434,15 +517,14 @@ void View3D::paintGL()
 
     std::vector<const Geometry*> geoms = selectedGeometry();
 
-    glCheckError();
-
     // Aim for 40ms frame time - an ok tradeoff for desktop usage
     const double targetMillisecs = 40;
     double quality = m_drawCostModel.quality(targetMillisecs, geoms, transState,
                                              m_incrementalDraw);
 
     // Render points
-    DrawCount drawCount = drawPoints(transState, geoms, quality, m_incrementalDraw);
+    DrawCount drawCount;
+    drawCount = drawPoints(transState, geoms, quality, m_incrementalDraw);
 
     // Draw meshes and lines
     if (!m_incrementalDraw)
@@ -471,15 +553,21 @@ void View3D::paintGL()
 //        s[barSize] = '|';
 //    tfm::printfln("%12f %4d %s", quality, frameTime, s);
 
-    // TODO: this should really render a texture onto a quad and not use glBlitFramebuffer
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, defaultFramebufferObject());
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, m_incrementalFramebuffer.id());
-    glBlitFramebuffer(0,0,w,h, 0,0,w,h,
-                      GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST); // has to be GL_NEAREST to work with DEPTH
+    {
+        PushDebugGroup blit("blit");
+
+        // TODO: this should really render a texture onto a quad and not use glBlitFramebuffer
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, defaultFramebufferObject());
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, m_incrementalFramebuffer.id());
+        glBlitFramebuffer(0,0,w,h, 0,0,w,h,
+                          GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST); // has to be GL_NEAREST to work with DEPTH
+    }
 
     // Draw a grid for orientation purposes
     if (m_drawGrid)
+    {
         drawGrid();
+    }
 
     // Draw bounding boxes
     if (m_drawBoundingBoxes)
@@ -500,8 +588,6 @@ void View3D::paintGL()
         }
     }
 
-    glCheckError();
-
     // Draw overlay stuff, including cursor position.
     if (m_drawCursor)
     {
@@ -509,15 +595,11 @@ void View3D::paintGL()
         //drawCursor(transState, m_camera.center(), 10);
     }
 
-    glCheckError();
-
     // Draw overlay axes
     if (m_drawAxes)
     {
         drawAxes();
     }
-
-    glCheckError();
 
     // Draw annotations
     if (m_drawAnnotations && m_annotationShader->isValid())
@@ -532,8 +614,6 @@ void View3D::paintGL()
         m_incrementalFrameTimer->start(10);
 
     m_incrementalDraw = true;
-
-    glCheckError();
 }
 
 void View3D::drawMeshes(const TransformState& transState,
@@ -691,6 +771,8 @@ void View3D::initCursor(float cursorRadius, float centerPointRadius)
 /// Draw the 3D cursor
 void View3D::drawCursor(const TransformState& transStateIn, const V3d& cursorPos, float centerPointRadius) const
 {
+    PushDebugGroup drawCursor("drawCursor");
+
     V3d offset = transStateIn.cameraPos();
     TransformState transState = transStateIn.translate(offset);
     V3d relCursor = cursorPos - offset;
@@ -704,18 +786,16 @@ void View3D::drawCursor(const TransformState& transStateIn, const V3d& cursorPos
     // Position in ortho coord system
     V2f p2 = 0.5f * V2f(width(), height()) * (V2f(screenP3.x, screenP3.y) + V2f(1.0f));
 
-    glCheckError();
-
     // Draw cursor
     if (m_cursorShader->isValid())
     {
+        glCheckError();
+
         QOpenGLShaderProgram& cursorShader = m_cursorShader->shaderProgram();
         // shader
         cursorShader.bind();
         // vertex array
         glBindVertexArray(m_cursorVertexArray);
-
-        glCheckError();
 
         transState.projMatrix.makeIdentity();
         transState.setOrthoProjection(0, width(), 0, height(), 0, 1);
@@ -728,14 +808,11 @@ void View3D::drawCursor(const TransformState& transStateIn, const V3d& cursorPos
             TransformState pointState = transState.translate( V3d(p2.x, p2.y, 0) );
             pointState = pointState.scale( V3d(0.0,0.0,0.0) );
 //            glLineWidth(centerPointRadius);
-            glCheckError();
             cursorShader.setUniformValue("color", 1.0f, 1.0f, 1.0f, 1.0f);
             pointState.setUniforms(cursorShader.programId());
             glCheckError();
             glDrawArrays( GL_POINTS, 0, 1 );
         }
-
-        glCheckError();
 
         // Now draw a 2D overlay over the 3D scene to allow user to pinpoint the
         // cursor, even when when it's behind something.
@@ -746,8 +823,6 @@ void View3D::drawCursor(const TransformState& transStateIn, const V3d& cursorPos
         glEnable(GL_LINE_SMOOTH);
 
         glLineWidth(1); // this won't work anymore for values larger than 1 (2.0f);
-
-        glCheckError();
 
         // draw white lines
         transState = transState.translate( V3d(p2.x, p2.y, 0) );
@@ -763,12 +838,22 @@ void View3D::drawCursor(const TransformState& transStateIn, const V3d& cursorPos
 
         glBindVertexArray(0);
     }
-
-    glCheckError();
 }
 
 void View3D::initAxes()
 {
+    glCheckError();
+
+    m_drawAxesBackground = std::make_unique<QOpenGLTexture>(QImage(":/resource/axes.png"), QOpenGLTexture::DontGenerateMipMaps);
+    m_drawAxesLabelX = std::make_unique<QOpenGLTexture>(QImage(":/resource/x.png"), QOpenGLTexture::DontGenerateMipMaps);
+    m_drawAxesLabelY = std::make_unique<QOpenGLTexture>(QImage(":/resource/y.png"), QOpenGLTexture::DontGenerateMipMaps);
+    m_drawAxesLabelZ = std::make_unique<QOpenGLTexture>(QImage(":/resource/z.png"), QOpenGLTexture::DontGenerateMipMaps);
+
+    objectLabel(GL_TEXTURE, m_drawAxesBackground->textureId(), "axes.png");
+    objectLabel(GL_TEXTURE, m_drawAxesLabelX->textureId(), "x.png");
+    objectLabel(GL_TEXTURE, m_drawAxesLabelY->textureId(), "y.png");
+    objectLabel(GL_TEXTURE, m_drawAxesLabelZ->textureId(), "z.png");
+
     m_axesBackgroundShader.reset(new ShaderProgram());
     bool axesb_shader_init = m_axesBackgroundShader->setShaderFromSourceFile("shaders:axes_quad.glsl");
     m_axesLabelShader.reset(new ShaderProgram());
@@ -784,111 +869,116 @@ void View3D::initAxes()
 
     const GLfloat w = 64.0;    // Width of axes widget
     const GLfloat o = 8.0;     // Axes widget offset in x and y
-    float transparency = 0.5f;
+    const GLfloat transparency = 0.5f;
 
-    float axesQuad[] = { o  , o,  0.0f, 0.0f,
-                         o+w, o,  1.0f, 0.0f,
-                         o+w, o+w,1.0f, 1.0f,
-                         o  , o,  0.0f, 0.0f,
-                         o+w, o+w,1.0f, 1.0f,
-                         o  , o+w,0.0f, 1.0f };
+    // Array buffer for axes widget background
+    {
 
-    glGenVertexArrays(1, &m_quadVertexArray);
-    glBindVertexArray(m_quadVertexArray);
+        float axesQuad[] = { o  , o,   0.0f, 0.0f,
+                             o+w, o,   1.0f, 0.0f,
+                             o+w, o+w, 1.0f, 1.0f,
+                             o  , o,   0.0f, 0.0f,
+                             o+w, o+w, 1.0f, 1.0f,
+                             o  , o+w, 0.0f, 1.0f };
 
-    GLuint axesQuadVertexBuffer;
-    glGenBuffers(1, &axesQuadVertexBuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, axesQuadVertexBuffer);
-    glBufferData(GL_ARRAY_BUFFER, (2 + 2) * 6 * sizeof(float), axesQuad, GL_STATIC_DRAW);
+        glGenVertexArrays(1, &m_quadVertexArray);
+        glBindVertexArray(m_quadVertexArray);
 
-    GLint positionAttribute = glGetAttribLocation(m_axesBackgroundShader->shaderProgram().programId(), "position");
+        GLuint axesQuadVertexBuffer;
+        glGenBuffers(1, &axesQuadVertexBuffer);
+        glBindBuffer(GL_ARRAY_BUFFER, axesQuadVertexBuffer);
+        glBufferData(GL_ARRAY_BUFFER, (2 + 2) * 6 * sizeof(float), axesQuad, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(positionAttribute, 2, GL_FLOAT, GL_FALSE, sizeof(float)*(2 + 2), (const GLvoid *)0);
-    glEnableVertexAttribArray(positionAttribute);
+        GLint positionAttribute = m_axesBackgroundShader->shaderProgram().attributeLocation("position");
+        glVertexAttribPointer(positionAttribute, 2, GL_FLOAT, GL_FALSE, sizeof(float)*(2 + 2), (const GLvoid *)0);
+        glEnableVertexAttribArray(positionAttribute);
 
-    GLint texCoordAttribute = glGetAttribLocation(m_axesBackgroundShader->shaderProgram().programId(), "texCoord");
+        GLint texCoordAttribute = m_axesBackgroundShader->shaderProgram().attributeLocation("texCoord");
+        glVertexAttribPointer(texCoordAttribute, 2, GL_FLOAT, GL_FALSE, sizeof(float)*(2 + 2), (const GLvoid *)(sizeof(float)*2));
+        glEnableVertexAttribArray(texCoordAttribute);
 
-    glVertexAttribPointer(texCoordAttribute, 2, GL_FLOAT, GL_FALSE, sizeof(float)*(2 + 2), (const GLvoid *)(sizeof(float)*2));
-    glEnableVertexAttribArray(texCoordAttribute);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+    }
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
+    // Array buffer for axis labels
 
+    {
+        const GLint l = 16;     // Label is 16 pixels wide
 
-    const GLint l = 16;     // Label is 16 pixels wide
+        float labelQuad[] = { -l/2, l/2, 0.0f, 0.0f,
+                               l/2, l/2, 1.0f, 0.0f,
+                               l/2,-l/2, 1.0f, 1.0f,
+                              -l/2, l/2, 0.0f, 0.0f,
+                               l/2,-l/2, 1.0f, 1.0f,
+                              -l/2,-l/2, 0.0f, 1.0f };
 
-    float labelQuad[] = { -l/2, l/2, 0.0f, 0.0f,
-                           l/2, l/2, 1.0f, 0.0f,
-                           l/2,-l/2, 1.0f, 1.0f,
-                          -l/2, l/2, 0.0f, 0.0f,
-                           l/2,-l/2, 1.0f, 1.0f,
-                          -l/2,-l/2, 0.0f, 1.0f };
+        glGenVertexArrays(1, &m_quadLabelVertexArray);
+        glBindVertexArray(m_quadLabelVertexArray);
 
-    glGenVertexArrays(1, &m_quadLabelVertexArray);
-    glBindVertexArray(m_quadLabelVertexArray);
+        GLuint labelQuadVertexBuffer;
+        glGenBuffers(1, &labelQuadVertexBuffer);
+        glBindBuffer(GL_ARRAY_BUFFER, labelQuadVertexBuffer);
+        glBufferData(GL_ARRAY_BUFFER, (2 + 2) * 6 * sizeof(float), labelQuad, GL_STATIC_DRAW);
 
-    GLuint labelQuadVertexBuffer;
-    glGenBuffers(1, &labelQuadVertexBuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, labelQuadVertexBuffer);
-    glBufferData(GL_ARRAY_BUFFER, (2 + 2) * 6 * sizeof(float), labelQuad, GL_STATIC_DRAW);
+        GLint positionAttribute = m_axesLabelShader->shaderProgram().attributeLocation("position");
+        glVertexAttribPointer(positionAttribute, 2, GL_FLOAT, GL_FALSE, sizeof(float)*(2 + 2), (const GLvoid *)0);
+        glEnableVertexAttribArray(positionAttribute);
 
-    positionAttribute = glGetAttribLocation(m_axesLabelShader->shaderProgram().programId(), "position");
+        GLint texCoordAttribute = m_axesLabelShader->shaderProgram().attributeLocation("texCoord");
+        glVertexAttribPointer(texCoordAttribute, 2, GL_FLOAT, GL_FALSE, sizeof(float)*(2 + 2), (const GLvoid *)(sizeof(float)*2));
+        glEnableVertexAttribArray(texCoordAttribute);
 
-    glVertexAttribPointer(positionAttribute, 2, GL_FLOAT, GL_FALSE, sizeof(float)*(2 + 2), (const GLvoid *)0);
-    glEnableVertexAttribArray(positionAttribute);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+    }
 
-    texCoordAttribute = glGetAttribLocation(m_axesLabelShader->shaderProgram().programId(), "texCoord");
+    // Array buffer for axis lines
 
-    glVertexAttribPointer(texCoordAttribute, 2, GL_FLOAT, GL_FALSE, sizeof(float)*(2 + 2), (const GLvoid *)(sizeof(float)*2));
-    glEnableVertexAttribArray(texCoordAttribute);
-    glBindVertexArray(0);
+    {
+        const V3f center(o + w/2, o + w/2, 0.0f); // Center of axis overlay
 
+        // color tint
+        const float c = 0.8f;
+        const float d = 0.5f;
+        const float t = 0.5f * (1+transparency);
+        const float r = 0.6f;  // 60% towards edge of circle
 
-    // Center of axis overlay
-    const V3f center(o+w/2,o+w/2,0.0); //(0.0,0.0,0.0); //
+        const float le = r * w/2; //1.0f;  // we'll scale this later to match with the 60% sizing
 
-    // color tint
-    const float c = 0.8f;
-    const float d = 0.5f;
-    const float t = 0.5f*(1+transparency);
-    const float r = 0.6f;  // 60% towards edge of circle
+        // just make up some lines for now ... this has to be updated later on ... unless we want to use rotations ?
+        float axesLines[] = { center.x,    center.y,    center.z,    c,d,d,t,
+                              center.x+le, center.y,    center.z,    c,d,d,t,
+                              center.x,    center.y,    center.z,    d,c,d,t,
+                              center.x,    center.y+le, center.z,    d,c,d,t,
+                              center.x,    center.y,    center.z,    d,d,c,t,
+                              center.x,    center.y,    center.z+le, d,d,c,t };
 
-    const float le = r*w/2; //1.0f;  // we'll scale this later to match with the 60% sizing
+        glGenVertexArrays(1, &m_axesVertexArray);
+        glBindVertexArray(m_axesVertexArray);
 
-    // just make up some lines for now ... this has to be updated later on ... unless we want to use rotations ?
-    float axesLines[] = { center.x, center.y, center.z, c,d,d,t,
-                          center.x+le, center.y, center.z, c,d,d,t,
-                          center.x, center.y, center.z, d,c,d,t,
-                          center.x, center.y+le, center.z, d,c,d,t,
-                          center.x, center.y, center.z, d,d,c,t,
-                          center.x, center.y, center.z+le, d,d,c,t, };
+        GLuint axesLinesVertexBuffer;
+        glGenBuffers(1, &axesLinesVertexBuffer);
+        glBindBuffer(GL_ARRAY_BUFFER, axesLinesVertexBuffer);
+        glBufferData(GL_ARRAY_BUFFER, (3 + 4) * 6 * sizeof(float), axesLines, GL_STATIC_DRAW);
 
-    glGenVertexArrays(1, &m_axesVertexArray);
-    glBindVertexArray(m_axesVertexArray);
+        GLint positionAttribute = m_axesShader->shaderProgram().attributeLocation("position");
+        glVertexAttribPointer(positionAttribute, 3, GL_FLOAT, GL_FALSE, sizeof(float)*(3 + 4), (const GLvoid *)0);
+        glEnableVertexAttribArray(positionAttribute);
 
-    GLuint axesLinesVertexBuffer;
-    glGenBuffers(1, &axesLinesVertexBuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, axesLinesVertexBuffer);
-    glBufferData(GL_ARRAY_BUFFER, (3 + 4) * 6 * sizeof(float), axesLines, GL_DYNAMIC_DRAW); // make this a STREAM buffer ?
+        GLint colorAttribute = m_axesShader->shaderProgram().attributeLocation("color");
+        glVertexAttribPointer(colorAttribute, 4, GL_FLOAT, GL_FALSE, sizeof(float)*(3 + 4), (const GLvoid *)(sizeof(float)*3));
+        glEnableVertexAttribArray(colorAttribute);
 
-    positionAttribute = glGetAttribLocation(m_axesShader->shaderProgram().programId(), "position");
-
-    glVertexAttribPointer(positionAttribute, 3, GL_FLOAT, GL_FALSE, sizeof(float)*(3 + 4), (const GLvoid *)0);
-    glEnableVertexAttribArray(positionAttribute);
-
-    GLint colorAttribute = glGetAttribLocation(m_axesShader->shaderProgram().programId(), "color");
-
-    glVertexAttribPointer(colorAttribute, 4, GL_FLOAT, GL_FALSE, sizeof(float)*(3 + 4), (const GLvoid *)(sizeof(float)*3));
-    glEnableVertexAttribArray(colorAttribute);
-
-    //glBindFragDataLocation(m_axesShader->shaderProgram().programId(), 0, "fragColor");
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+    }
 }
 
 void View3D::drawAxes()
 {
+    PushDebugGroup drawAxes("drawAxes");
+
     glDisable(GL_DEPTH_TEST);
 
     TransformState projState(Imath::V2i(width(), height()),
@@ -896,109 +986,108 @@ void View3D::drawAxes()
                              Imath::M44d());
 
     projState.projMatrix.makeIdentity();
-    projState.setOrthoProjection(0, width(), 0, height(), 0, 1);
     projState.modelViewMatrix.makeIdentity();
+    projState.setOrthoProjection(0, width(), 0, height(), 0, 1);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glActiveTexture(GL_TEXTURE0);
 
     const GLint w = 64;    // Width of axes widget
     const GLint o = 8;     // Axes widget offset in x and y
 
     // Center of axis overlay
-    const V3d center(o+w/2,o+w/2,0.0);
+    const V3d center(o + w/2, o + w/2, 0.0);
 
-    TransformState transState(Imath::V2i(width(), height()),
-                              m_camera.projectionMatrix(),
-                              m_camera.viewMatrix());
+    // TransformState transState(Imath::V2i(width(), height()),
+    //                           m_camera.projectionMatrix(),
+    //                           m_camera.viewMatrix());
 
-    // Draw Background texture
+    // Draw background texture
+
     if (m_axesBackgroundShader->isValid())
     {
+        PushDebugGroup axes("background");
+
         QOpenGLShaderProgram& axesBackgroundShader = m_axesBackgroundShader->shaderProgram();
-        GLint textureSampler = glGetUniformLocation(axesBackgroundShader.programId(), "texture0");
-        // shader
         axesBackgroundShader.bind();
-        // texture
-        m_drawAxesBackground->bind(textureSampler);
-        // vertex buffer
-        glBindVertexArray(m_quadVertexArray);
-        // matrix stack
+        axesBackgroundShader.setUniformValue("texture0", 0);
         projState.setUniforms(axesBackgroundShader.programId());
-        // draw
-        glDrawArrays( GL_TRIANGLES, 0, 6 );
-        // do NOT release shader, this is no longer supported in OpenGL 3.2
+
+        m_drawAxesBackground->bind();
+        glBindVertexArray(m_quadVertexArray);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
         glBindVertexArray(0);
     }
 
     // Draw axes
+
     if (m_axesShader->isValid())
     {
-        //tfm::printfln("drawing with m_axesShader");
+        PushDebugGroup axes("axes");
 
         QOpenGLShaderProgram& axesShader = m_axesShader->shaderProgram();
-        // shader
         axesShader.bind();
-        // vertex buffer
-        glBindVertexArray(m_axesVertexArray);
-        // matrix stack
         axesShader.setUniformValue("center", center.x, center.y, center.z);
-
         projState.modelViewMatrix = m_camera.rotationMatrix();
         projState.setUniforms(axesShader.programId());
 
-        // draw
-        glLineWidth(1); // this won't work anymore for values larger than 1 (4.0f);
-        glDrawArrays( GL_LINES, 0, 6 );
-        // do NOT release shader, this is no longer supported in OpenGL 3.2
-
+        glBindVertexArray(m_axesVertexArray);
+            glLineWidth(1); // this won't work anymore for values larger than 1 (4.0f);
+            glDrawArrays(GL_LINES, 0, 6);
         glBindVertexArray(0);
     }
 
     // Draw Labels
 
-    const double r = 0.8;   // 80% towards edge of circle
-
-    // TODO: check if we should do this again:
-    // Note that V3d -> V3i (double to integer precision)
-    // conversion is intentionally snapping the label to
-    // integer co-ordinates to eliminate subpixel aliasing
-    // artifacts.  This is also the reason that matrix
-    // transformations are not being used for this.
-
-    const V3d px = V3d(1.0,0.0,0.0)*r*w/2;
-    const V3d py = V3d(0.0,1.0,0.0)*r*w/2;
-    const V3d pz = V3d(0.0,0.0,1.0)*r*w/2;
-
+    assert(m_axesLabelShader->isValid());
     if (m_axesLabelShader->isValid())
     {
-        QOpenGLShaderProgram& axesLabelShader = m_axesLabelShader->shaderProgram();
+        PushDebugGroup labels("labels");
+
+        const double r = 0.8;   // 80% towards edge of circle
+
+        // TODO: check if we should do this again:
+        // Note that V3d -> V3i (double to integer precision)
+        // conversion is intentionally snapping the label to
+        // integer co-ordinates to eliminate subpixel aliasing
+        // artifacts.  This is also the reason that matrix
+        // transformations are not being used for this.
+
+        const V3d px = V3d(1.0, 0.0, 0.0) * r * w/2;
+        const V3d py = V3d(0.0, 1.0, 0.0) * r * w/2;
+        const V3d pz = V3d(0.0, 0.0, 1.0) * r * w/2;
+
         // shader
+        QOpenGLShaderProgram& axesLabelShader = m_axesLabelShader->shaderProgram();
+        assert(axesLabelShader.isLinked());
         axesLabelShader.bind();
-        GLint texLocation = glGetUniformLocation(axesLabelShader.programId(), "texture0");
-        // vertex buffer
-        glBindVertexArray(m_quadLabelVertexArray);
-        // matrix stack
+        axesLabelShader.setUniformValue("texture0", 0);
         projState.setUniforms(axesLabelShader.programId());
-        // adjust positions
         axesLabelShader.setUniformValue("center", center.x, center.y, center.z);
-        // offset
-        axesLabelShader.setUniformValue("offset", px.x, px.y, px.z);
-        // texture
-        m_drawAxesLabelX->bind(texLocation);
-        // draw
-        glDrawArrays( GL_TRIANGLES, 0, 6 );
-        axesLabelShader.setUniformValue("offset", py.x, py.y, py.z);
-        // texture
-        m_drawAxesLabelY->bind(texLocation);
-        // draw
-        glDrawArrays( GL_TRIANGLES, 0, 6 );
-        axesLabelShader.setUniformValue("offset", pz.x, pz.y, pz.z);
-        // texture
-        m_drawAxesLabelZ->bind(texLocation);
-        // draw
-        glDrawArrays( GL_TRIANGLES, 0, 6 );
-        // do NOT release shader, this is no longer supported in OpenGL 3.2
+
+        glBindVertexArray(m_quadLabelVertexArray);
+
+            {
+                PushDebugGroup x("x");
+                axesLabelShader.setUniformValue("offset", px.x, px.y, px.z);
+                m_drawAxesLabelX->bind();
+                glDrawArrays(GL_TRIANGLES, 0, 6);
+            }
+
+            {
+                PushDebugGroup y("y");
+                axesLabelShader.setUniformValue("offset", py.x, py.y, py.z);
+                m_drawAxesLabelY->bind();
+                glDrawArrays(GL_TRIANGLES, 0, 6);
+            }
+
+            {
+                PushDebugGroup z("z");
+                axesLabelShader.setUniformValue("offset", pz.x, pz.y, pz.z);
+                m_drawAxesLabelZ->bind();
+                glDrawArrays(GL_TRIANGLES, 0, 6);
+            }
 
         glBindVertexArray(0);
     }
@@ -1060,6 +1149,8 @@ void View3D::initGrid(const float scale)
 
 void View3D::drawGrid() const
 {
+    PushDebugGroup drawGrid("drawGrid");
+
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -1092,8 +1183,6 @@ DrawCount View3D::drawPoints(const TransformState& transState,
                              const std::vector<const Geometry*>& geoms,
                              double quality, bool incrementalDraw)
 {
-    glCheckError();
-
     DrawCount totDrawCount;
     if (geoms.empty())
     {
@@ -1104,6 +1193,8 @@ DrawCount View3D::drawPoints(const TransformState& transState,
     {
         return DrawCount();
     }
+
+    PushDebugGroup drawPoints("drawPoints");
 
     double dPR = getDevicePixelRatio();
 
@@ -1117,14 +1208,9 @@ DrawCount View3D::drawPoints(const TransformState& transState,
     m_shaderProgram->setUniforms();
     QModelIndexList selection = m_selectionModel->selectedRows();
 
-    glCheckError();
-
-    printf("%d geometries\n", geoms.size());
-
     for (size_t i = 0; i < geoms.size(); ++i)
     {
         const Geometry& geom = *geoms[i];
-        printf("%d points\n", geom.pointCount());
         if (!geom.pointCount())
         {
             continue;
@@ -1136,12 +1222,11 @@ DrawCount View3D::drawPoints(const TransformState& transState,
         totDrawCount += geom.drawPoints(prog, transState, quality, incrementalDraw);
     }
 
-    glCheckError();
-
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_STENCIL_TEST);
     glDisable(GL_BLEND);
     glDisable(GL_VERTEX_PROGRAM_POINT_SIZE);
+
     return totDrawCount;
 }
 

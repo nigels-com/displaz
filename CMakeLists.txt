@@ -33,7 +33,7 @@ option(DISPLAZ_USE_LAS "Build with support for reading las files" TRUE)
 option(DISPLAZ_USE_TESTS "Build the test cases" TRUE)
 option(DISPLAZ_BUILD_DVOX "Build experimential dvox utility" FALSE)
 option(DISPLAZ_EMBED_GLEW "Build GLEW as part of the displaz build process" TRUE)
-option(DISPLAZ_GL_DEBUG "Enable runtime error checking" FALSE)
+option(DISPLAZ_GL_CHECK "Enable OpenGL runtime error checking" FALSE)
 
 set(DISPLAZ_EXTERNAL_DIR "${PROJECT_BINARY_DIR}/../build_external/dist"
     CACHE PATH "Directory containing installed third party libraries (laslib, ilmbase, ...)")
@@ -81,28 +81,13 @@ else()
     find_package(GLEW)
 endif()
 
-if (DISPLAZ_GL_DEBUG)
+if (DISPLAZ_GL_CHECK)
     add_definitions(-DGL_CHECK)
 endif()
 
 find_package(OpenGL REQUIRED)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Network OpenGLWidgets OpenGL)
-
-#find_package(Qt5Core REQUIRED)
-#find_package(Qt5Gui REQUIRED)
-#find_package(Qt5Network REQUIRED)
-#find_package(Qt5OpenGL REQUIRED)
-#find_package(Qt5Widgets REQUIRED)
-#add_definitions(${Qt5Core_DEFINITIONS})
-#add_definitions(${Qt5Gui_DEFINITIONS})
-#add_definitions(${Qt5Network_DEFINITIONS})
-#add_definitions(${Qt5Widgets_DEFINITIONS})
-
-#if (NOT WIN32)
-#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Qt5Core_EXECUTABLE_COMPILE_FLAGS} ${Qt5Gui_EXECUTABLE_COMPILE_FLAGS} #${Qt5Network_EXECUTABLE_COMPILE_FLAGS} ${Qt5OpenGL_EXECUTABLE_COMPILE_FLAGS} ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS}")
-#endif()
-
 
 include_directories(${IMATH_INCLUDE_DIRS})
 

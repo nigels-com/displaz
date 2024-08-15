@@ -43,7 +43,59 @@ void _glFrameBufferStatus(GLenum target, const char *file, int line);
 
 #endif //GL_CHECK
 
+class PushDebugGroup
+{
+public:
+    PushDebugGroup(const char* message)
+    {
+        #ifdef GL_CHECK
+        if (glPushDebugGroup)
+        {
+            glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, message);
+        }
+        #endif
+    }
 
+    ~PushDebugGroup()
+    {
+        #ifdef GL_CHECK
+        if (glPopDebugGroup)
+        {
+            glPopDebugGroup();
+        }
+        #endif
+    }
+};
+
+inline void pushDebugGroup(const char* message)
+{
+    #ifdef GL_CHECK
+    if (glPushDebugGroup)
+    {
+        glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, message);
+    }
+    #endif
+}
+
+inline void popDebugGroup()
+{
+    #ifdef GL_CHECK
+    if (glPopDebugGroup)
+    {
+        glPopDebugGroup();
+    }
+    #endif
+}
+
+inline void objectLabel(GLenum identifier, GLuint name, const char* label)
+{
+    #ifdef GL_CHECK
+    if (glObjectLabel)
+    {
+        glObjectLabel(identifier, name, -1, label);
+    }
+    #endif
+}
 
 //-------------------------------------------------------------------------------
 struct TransformState

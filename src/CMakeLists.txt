@@ -11,14 +11,6 @@ include_directories(BEFORE
     ${THIRDPARTY_INSTALL_DIR}/include
 )
 
-include_directories(
-    ${Qt5Core_INCLUDE_DIRS}
-    ${Qt5GUI_INCLUDE_DIRS}
-    ${Qt5Network_INCLUDE_DIRS}
-    ${Qt5OpenGL_INCLUDE_DIRS}
-    ${Qt5Widgets_INCLUDE_DIRS}
-)
-
 #------------------------------------------------------------------------------
 # Sources
 
