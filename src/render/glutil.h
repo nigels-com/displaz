@@ -151,38 +151,53 @@ inline void glLoadMatrix(const Imath::M44f& m)
 class GlBuffer
 {
 public:
-    GlBuffer() : m_id(0) {}
+    GlBuffer(const char* label = nullptr) : m_label(label), m_id(0) {}
 
     GlBuffer(const GlBuffer&) = delete;
 
-    GlBuffer(GlBuffer&& rhs)
+    GlBuffer(GlBuffer&& rhs) : m_label(rhs.m_label), m_id(rhs.m_id)
     {
-        m_id = rhs.m_id;
         rhs.m_id = 0;
+    }
+
+    ~GlBuffer()
+    {
+        if (m_id)
+        {
+            glDeleteBuffers(1, &m_id);
+        }
     }
 
     bool init()
     {
         if (m_id)
+        {
             glDeleteBuffers(1, &m_id);
+        }
+
         m_id = 0;
         glGenBuffers(1, &m_id);
+
+        #ifdef GL_CHECK
+        if (glObjectLabel && m_label)
+        {
+            glObjectLabel(GL_BUFFER, m_id, -1, m_label);
+        }
+        #endif
+
         return m_id != 0;
     }
 
     void bind(GLenum target)
     {
         if (m_id || init())
+        {
             glBindBuffer(target, m_id);
-    }
-
-    ~GlBuffer()
-    {
-        if (m_id)
-            glDeleteBuffers(1, &m_id);
+        }
     }
 
 private:
+    const char* m_label = nullptr;
     GLuint m_id;
 };
 

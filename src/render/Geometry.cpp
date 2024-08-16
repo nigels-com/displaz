@@ -132,7 +132,7 @@ void Geometry::initializeBboxGL(unsigned int bboxShader)
 
     setVAO("boundingbox", bboxVertexArray);
 
-    GlBuffer positionBuffer;
+    GlBuffer positionBuffer("boundingbox_verts");
     positionBuffer.bind(GL_ARRAY_BUFFER);
     glBufferData(GL_ARRAY_BUFFER, 3*8*sizeof(float), verts, GL_STATIC_DRAW);
 
@@ -140,7 +140,7 @@ void Geometry::initializeBboxGL(unsigned int bboxShader)
     glVertexAttribPointer(positionAttribute, 3, GL_FLOAT, GL_FALSE, sizeof(float)*(3), (const GLvoid *)0);
     glEnableVertexAttribArray(positionAttribute);
 
-    GlBuffer elementBuffer;
+    GlBuffer elementBuffer("boundingbox_index");
     elementBuffer.bind(GL_ELEMENT_ARRAY_BUFFER);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, 2*4*3*sizeof(char), inds, GL_STATIC_DRAW);
 

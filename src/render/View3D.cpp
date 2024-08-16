@@ -384,7 +384,7 @@ void View3D::initializeGL()
 
     glCheckError();
 
-    m_shaderProgram = std::make_unique<ShaderProgram>();
+    m_shaderProgram = std::make_unique<ShaderProgram>("points");
     connect(m_shaderProgram.get(), SIGNAL(uniformValuesChanged()),
             this, SLOT(restartRender()));
     connect(m_shaderProgram.get(), SIGNAL(shaderChanged()),
@@ -419,16 +419,16 @@ void View3D::initializeGL()
 
     glCheckError();
 
-    m_boundingBoxShader.reset(new ShaderProgram());
+    m_boundingBoxShader.reset(new ShaderProgram("bounding_box"));
     m_boundingBoxShader->setShaderFromSourceFile("shaders:bounding_box.glsl");
 
-    m_meshFaceShader.reset(new ShaderProgram());
+    m_meshFaceShader.reset(new ShaderProgram("meshface"));
     m_meshFaceShader->setShaderFromSourceFile("shaders:meshface.glsl");
 
-    m_meshEdgeShader.reset(new ShaderProgram());
+    m_meshEdgeShader.reset(new ShaderProgram("meshedge"));
     m_meshEdgeShader->setShaderFromSourceFile("shaders:meshedge.glsl");
 
-    m_annotationShader.reset(new ShaderProgram());
+    m_annotationShader.reset(new ShaderProgram("annotation"));
     m_annotationShader->setShaderFromSourceFile("shaders:annotation.glsl");
 
     double dPR = getDevicePixelRatio();
@@ -755,7 +755,7 @@ void View3D::initCursor(float cursorRadius, float centerPointRadius)
                                0.0, -r1*s, 0.0,
                                0.0, -r2*s, 0.0  };
 
-    m_cursorShader.reset(new ShaderProgram());
+    m_cursorShader.reset(new ShaderProgram("cursor"));
     bool cursor_shader_init = m_cursorShader->setShaderFromSourceFile("shaders:cursor.glsl");
 
     if (!cursor_shader_init)
@@ -767,7 +767,7 @@ void View3D::initCursor(float cursorRadius, float centerPointRadius)
     glGenVertexArrays(1, &m_cursorVertexArray);
     glBindVertexArray(m_cursorVertexArray);
 
-    GlBuffer positionBuffer;
+    GlBuffer positionBuffer("cursor");
     positionBuffer.bind(GL_ARRAY_BUFFER);
     glBufferData(GL_ARRAY_BUFFER, (3) * 8 * sizeof(float), cursorPoints, GL_STATIC_DRAW);
 
@@ -869,9 +869,9 @@ void View3D::initAxes()
 
     m_axesBackgroundShader.reset(new ShaderProgram("axes_quad"));
     bool axesb_shader_init = m_axesBackgroundShader->setShaderFromSourceFile("shaders:axes_quad.glsl");
-    m_axesLabelShader.reset(new ShaderProgram());
+    m_axesLabelShader.reset(new ShaderProgram("axes_label"));
     bool axesl_shader_init = m_axesLabelShader->setShaderFromSourceFile("shaders:axes_label.glsl");
-    m_axesShader.reset(new ShaderProgram());
+    m_axesShader.reset(new ShaderProgram("axes_lines"));
     bool axes_shader_init = m_axesShader->setShaderFromSourceFile("shaders:axes_lines.glsl");
 
     if (!axes_shader_init || !axesb_shader_init || !axesl_shader_init)
@@ -899,6 +899,7 @@ void View3D::initAxes()
 
         GLuint axesQuadVertexBuffer;
         glGenBuffers(1, &axesQuadVertexBuffer);
+        objectLabel(GL_BUFFER, axesQuadVertexBuffer, "axes_quad");
         glBindBuffer(GL_ARRAY_BUFFER, axesQuadVertexBuffer);
         glBufferData(GL_ARRAY_BUFFER, (2 + 2) * 6 * sizeof(float), axesQuad, GL_STATIC_DRAW);
 
@@ -931,6 +932,7 @@ void View3D::initAxes()
 
         GLuint labelQuadVertexBuffer;
         glGenBuffers(1, &labelQuadVertexBuffer);
+        objectLabel(GL_BUFFER, labelQuadVertexBuffer, "axes_label");
         glBindBuffer(GL_ARRAY_BUFFER, labelQuadVertexBuffer);
         glBufferData(GL_ARRAY_BUFFER, (2 + 2) * 6 * sizeof(float), labelQuad, GL_STATIC_DRAW);
 
@@ -972,6 +974,7 @@ void View3D::initAxes()
 
         GLuint axesLinesVertexBuffer;
         glGenBuffers(1, &axesLinesVertexBuffer);
+        objectLabel(GL_BUFFER, axesLinesVertexBuffer, "axes_lines");
         glBindBuffer(GL_ARRAY_BUFFER, axesLinesVertexBuffer);
         glBufferData(GL_ARRAY_BUFFER, (3 + 4) * 6 * sizeof(float), axesLines, GL_STATIC_DRAW);
 
@@ -1108,7 +1111,7 @@ void View3D::drawAxes()
 
 void View3D::initGrid(const float scale)
 {
-    m_gridShader.reset(new ShaderProgram());
+    m_gridShader.reset(new ShaderProgram("grid"));
     bool grid_shader_init = m_gridShader->setShaderFromSourceFile("shaders:grid.glsl");
 
     if (!grid_shader_init)
