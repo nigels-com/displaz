@@ -16,7 +16,6 @@
 #define QT_NO_OPENGL_ES_2
 
 #include <QImage>
-#include <QGLWidget>
 
 #include <vector>
 #include <cassert>
@@ -244,8 +243,6 @@ class Framebuffer
         GLuint m_colorBuf = 0;
         GLuint m_zBuf = 0;
 };
-
-
 
 //------------------------------------------------------------------------------
 // Shader utilities
