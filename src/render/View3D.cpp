@@ -253,7 +253,7 @@ void View3D::setAnnotations(bool enable)
 
 void View3D::centerOnGeometry(const QModelIndex& index)
 {
-    if (m_wasd)
+    if (m_camera.m_mode == NAVIGATION)
     {
     }
     else
@@ -386,6 +386,11 @@ void View3D::paintGL()
         return;
     }
 
+    if (m_camera.m_mode == NAVIGATION)
+    {
+        updateNavigation();
+    }
+
     QElapsedTimer frameTimer;
     frameTimer.start();
 
@@ -410,7 +415,7 @@ void View3D::paintGL()
     // Draw main scene
     TransformState transState(Imath::V2i(w, h),
                               m_camera.projectionMatrix(),
-                              m_wasd ? m_camera.viewMatrix(m_cameraYaw, m_cameraPitch) : m_camera.viewMatrix());
+                              m_camera.viewMatrix());
 
     glClearDepth(1.0f);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -496,14 +501,14 @@ void View3D::paintGL()
     }
 
     // Draw overlay stuff, including cursor position.
-    if (m_drawCursor && !m_wasd)
+    if (m_drawCursor && m_camera.m_mode != NAVIGATION)
     {
         drawCursor(transState, m_cursorPos, 10);
         //drawCursor(transState, m_camera.center(), 10);
     }
 
     // Draw overlay axes
-    if (m_drawAxes && !m_wasd) // TODO in WASD mode?
+    if (m_drawAxes && m_camera.m_mode != NAVIGATION)
     {
         drawAxes();
     }
@@ -514,7 +519,7 @@ void View3D::paintGL()
         drawAnnotations(transState, w, h);
     }
 
-    if (!m_wasd)
+    if (m_camera.m_mode != NAVIGATION)
     {
         // Set up timer to draw a high quality frame if necessary
         if (!drawCount.moreToDraw)
@@ -523,6 +528,11 @@ void View3D::paintGL()
             m_incrementalFrameTimer->start(10);
 
         m_incrementalDraw = true;
+    }
+
+    if (m_camera.m_mode == NAVIGATION && !m_keysPressed.isEmpty())
+    {
+        restartRender();
     }
 }
 
@@ -616,18 +626,18 @@ void View3D::snapToPoint(const Imath::V3d & pos)
 
 void View3D::mouseMoveEvent(QMouseEvent* event)
 {
-    if (m_wasd)
+    if (m_camera.m_mode == NAVIGATION)
     {
         QPoint center = rect().center();
         QPoint delta = event->pos() - center;
 
         const float sensitivity = 0.1f;
-        m_cameraYaw   -= delta.x() * sensitivity;
-        m_cameraPitch -= delta.y() * sensitivity;
+        m_camera.m_yaw   -= delta.x() * sensitivity;
+        m_camera.m_pitch -= delta.y() * sensitivity;
 
         // Clamp pitch
-        if (m_cameraPitch >  89.0f) m_cameraPitch =  89.0f;
-        if (m_cameraPitch < -89.0f) m_cameraPitch = -89.0f;
+        if (m_camera.m_pitch >  89.0f) m_camera.m_pitch =  89.0f;
+        if (m_camera.m_pitch < -89.0f) m_camera.m_pitch = -89.0f;
 
         // Recenter cursor
         QCursor::setPos(mapToGlobal(center));
@@ -657,7 +667,7 @@ void View3D::mouseMoveEvent(QMouseEvent* event)
 
 void View3D::wheelEvent(QWheelEvent* event)
 {
-    if (m_wasd)
+    if (m_camera.m_mode == NAVIGATION)
     {
     }
     else
@@ -676,18 +686,8 @@ void View3D::keyPressEvent(QKeyEvent *event)
     {
         m_keysPressed.insert(event->key());
 
-        if (m_wasd)
+        if (m_camera.m_mode == NAVIGATION && !m_keysPressed.isEmpty())
         {
-            if (m_keysPressed.isEmpty())
-            {
-                m_timer.stop();
-            }
-            else
-            {
-                m_timer.start(m_timerDuration, this); // ~20 FPS
-            }
-
-            updateWASD();
             restartRender();
         }
     }
@@ -701,20 +701,20 @@ void View3D::keyPressEvent(QKeyEvent *event)
 
     if (event->key() == Qt::Key_Escape)
     {
-        if (m_wasd)
+        if (m_camera.m_mode == NAVIGATION)
         {
-            m_wasd = false;
+            m_camera.m_mode = m_previousCameraMode;
             setFocusPolicy(Qt::StrongFocus);
             setMouseTracking(false);
-            m_camera.setEyeToCenterDistance(0.1);
+            m_camera.setEyeToCenterDistance(1.0);
             QWidget::setCursor(Qt::ArrowCursor);
             releaseMouse();
             releaseKeyboard();
-            m_timer.stop();
         }
         else
         {
-            m_wasd = true;
+            m_previousCameraMode = m_camera.m_mode;
+            m_camera.m_mode = NAVIGATION;
             setFocusPolicy(Qt::StrongFocus);
             setMouseTracking(true);
             m_camera.setEyeToCenterDistance(0.1);
@@ -723,7 +723,7 @@ void View3D::keyPressEvent(QKeyEvent *event)
             grabKeyboard();
             const QPoint center = rect().center();
             QCursor::setPos(mapToGlobal(center));
-            m_timer.start(m_timerDuration, this); // ~20 FPS
+            restartRender();
         }
         event->ignore();
         return;
@@ -740,18 +740,8 @@ void View3D::keyReleaseEvent(QKeyEvent *event)
     {
         m_keysPressed.remove(event->key());
 
-        if (m_wasd)
+        if (m_camera.m_mode == NAVIGATION)
         {
-            if (m_keysPressed.isEmpty())
-            {
-                m_timer.stop();
-            }
-            else
-            {
-                m_timer.start(m_timerDuration, this); // ~20 FPS
-            }
-
-            updateWASD();
             restartRender();
         }
     }
@@ -759,19 +749,20 @@ void View3D::keyReleaseEvent(QKeyEvent *event)
     event->ignore();
 }
 
-void View3D::updateWASD()
+void View3D::updateNavigation()
 {
     // WASD
 
     const bool keyUp   = m_keysPressed.contains(Qt::Key_Space);
     const bool keyDown = m_keysPressed.contains(Qt::Key_X);
 
-    QVector3D front;
-    front.setX(cos(qDegreesToRadians(m_cameraYaw)) * cos(qDegreesToRadians(m_cameraPitch)));
-    front.setY(sin(qDegreesToRadians(m_cameraYaw)) * cos(qDegreesToRadians(m_cameraPitch)));
-    front.setZ(sin(qDegreesToRadians(m_cameraPitch)));
-    front.normalize();
+    QVector3D dir;
+    dir.setX(cos(qDegreesToRadians(m_camera.m_yaw)) * cos(qDegreesToRadians(m_camera.m_pitch)));
+    dir.setY(sin(qDegreesToRadians(m_camera.m_yaw)) * cos(qDegreesToRadians(m_camera.m_pitch)));
+    dir.setZ(sin(qDegreesToRadians(m_camera.m_pitch)));
+    dir.normalize();
 
+    QVector3D front(dir);
     if (keyUp || keyDown)
     {
         front.setZ(0.0f);
@@ -783,29 +774,19 @@ void View3D::updateWASD()
     // 1m/s walking, 5ms/s running
 
     const float scale = QApplication::keyboardModifiers()&Qt::ShiftModifier ? 5.0 : 1.0;
-    const float speed = 1.0f;
+    const float speed = 0.5f;
 
-    if (m_keysPressed.contains(Qt::Key_W))     m_cameraPos += front * scale * speed;
-    if (m_keysPressed.contains(Qt::Key_S))     m_cameraPos -= front * scale * speed;
-    if (m_keysPressed.contains(Qt::Key_A))     m_cameraPos -= right * scale * speed;
-    if (m_keysPressed.contains(Qt::Key_D))     m_cameraPos += right * scale * speed;
-    if (keyUp)                                 m_cameraPos +=    up * scale * speed * 0.5;
-    if (keyDown)                               m_cameraPos -=    up * scale * speed * 0.5;
+    if (m_keysPressed.contains(Qt::Key_W))     m_camera.m_position += front * scale * speed;
+    if (m_keysPressed.contains(Qt::Key_S))     m_camera.m_position -= front * scale * speed;
+    if (m_keysPressed.contains(Qt::Key_A))     m_camera.m_position -= right * scale * speed;
+    if (m_keysPressed.contains(Qt::Key_D))     m_camera.m_position += right * scale * speed;
+    if (keyUp)                                 m_camera.m_position +=    up * scale * speed * 0.5;
+    if (keyDown)                               m_camera.m_position -=    up * scale * speed * 0.5;
 
-    m_camera.setCenter(Imath::V3d(m_cameraPos.x(), m_cameraPos.y(), m_cameraPos.z()));
-}
-
-void View3D::timerEvent(QTimerEvent *event)
-{
-    if (m_wasd)
-    {
-        updateWASD();
-        restartRender();
-    }
-    else
-    {
-        m_timer.stop();
-    }
+    // Update camera examiner to match
+    m_camera.m_center = m_camera.m_position + dir;
+    m_camera.m_distance = 1.0f;
+    m_camera.m_rotation = QQuaternion::fromDirection(dir, QVector3D(0, 0, 1));
 }
 
 void View3D::initCursor(float cursorRadius, float centerPointRadius)
@@ -1222,7 +1203,7 @@ void View3D::drawGrid() const
 
     TransformState transState(Imath::V2i(width(), height()),
                               m_camera.projectionMatrix(),
-                              m_wasd ? m_camera.viewMatrix(m_cameraYaw, m_cameraPitch) : m_camera.viewMatrix());
+                              m_camera.viewMatrix());
 
     // Draw grid
     if (m_gridShader->isValid())

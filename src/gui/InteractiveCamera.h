@@ -3,8 +3,7 @@
 
 /// \author Chris Foster [chris42f [at] gmail (dot) com]
 
-#ifndef AQSIS_INTERACTIVE_CAMERA_H_INCLUDED
-#define AQSIS_INTERACTIVE_CAMERA_H_INCLUDED
+#pragma once
 
 #ifdef _MSC_VER
 #   ifndef _USE_MATH_DEFINES
@@ -13,11 +12,11 @@
 #endif
 #include <cmath>
 
-#include <QQuaternion>
-#include <QVector3D>
-#include <QMatrix4x4>
 #include <QRect>
 #include <QtMath>
+#include <QVector3D>
+#include <QMatrix4x4>
+#include <QQuaternion>
 
 #ifdef __clang__
 #pragma GCC diagnostic push
@@ -34,19 +33,36 @@
 // TMP DEBUG
 #include "tinyformat.h"
 
-/// Camera controller for mouse-based scene navigation
+/// Camera controller for mouse and keyboard scene navigation
 ///
-/// The camera model used here is for inspecting objects, so we have a location
-/// of interest - the camera "center" - which the eye always looks at and
-/// around which the eye can be rotated with the mouse.  There are two possible
-/// rotation models supported here:
+/// Two examiner modes for inspecting objects.
+/// An additional navigation mode with keyboard WSAD and mouse-look.
+/// Integrated and unified here for ease of switching between these as needed.
 ///
-/// 1) The virtual trackball model  - this does not impose any particular "up
+/// In "examiner" modes the formulation is a center of interest,
+/// a quaternion orientation and a scalar distance.
+///
+/// Two rotation models:
+///
+/// 1) The virtual trackball model - this does not impose any particular "up
 ///    vector" on the user.
 /// 2) The turntable model, which is potentially more intuitive when the data
 ///    has a natural vertical direction.
 ///
-class InteractiveCamera : public QObject
+/// In "navigation" mode a position of the camera, horizontal yaw angle
+/// and vertical pitch angle.
+///
+/// Keyboard:  WSAD - move camera forward (W), back (S), left (A) and right (D)
+/// Mouse:     Yaw and pitch angle adjustment
+
+enum CameraMode
+{
+    TRACKBALL = 0,
+    TURNTABLE = 1,
+    NAVIGATION = 2
+};
+
+class Camera : public QObject
 {
     Q_OBJECT
 
@@ -55,53 +71,73 @@ class InteractiveCamera : public QObject
         /// transformation will invert the z-axis.  If used with OpenGL (which
         /// is right handed by default) this gives us a left handed coordinate
         /// system.
-        InteractiveCamera()
-            : m_rot(),
-            m_center(0,0,0)
-        { }
+        Camera() = default;
 
         /// Get the projection from camera to screen coordinates
         Imath::M44d projectionMatrix() const
         {
-            QMatrix4x4 m;
-            qreal aspect = qreal(m_viewport.width())/m_viewport.height();
-            // Simple heuristic for clipping planes: use a large range of
-            // depths scaled by the distance of interest m_dist.  The large
-            // range must be traded off against finite precision of the depth
-            // buffer which can lead to z-fighting when rendering objects at a
-            // similar depth.
-            float clipNear = 1e-2*m_dist;
-            float clipFar = 1e+5*m_dist;
-            m.perspective(m_fieldOfView, aspect, clipNear, clipFar);
-            return qt2exr(m);
+            // TODO: If height is zero?
+            const float aspect = static_cast<float>(m_viewport.width()) / m_viewport.height();
+
+            switch (m_mode)
+            {
+                case TRACKBALL:
+                case TURNTABLE:
+                default:
+                {
+                    // Simple heuristic for clipping planes: use a large range of
+                    // depths scaled by the distance of interest m_dist.  The large
+                    // range must be traded off against finite precision of the depth
+                    // buffer which can lead to z-fighting when rendering objects at a
+                    // similar depth.
+                    float clipNear = 1e-2*m_distance;
+                    float clipFar = 1e+5*m_distance;
+                    QMatrix4x4 m;
+                    m.perspective(m_fieldOfView, aspect, clipNear, clipFar);
+                    return qt2exr(m);
+                }
+
+                case NAVIGATION:
+                {
+                    QMatrix4x4 m;
+                    m.perspective(m_fieldOfView, aspect, 0.01, 500.0);  // 1cm, 500m
+                    return qt2exr(m);
+                }
+            }
         }
 
         /// Get view transformation from world to camera coordinates
         Imath::M44d viewMatrix() const
         {
-            QMatrix4x4 m;
-            m.translate(0, 0, -m_dist);
-            m.rotate(m_rot);
-            if (m_reverseHandedness)
+            switch (m_mode)
             {
-                m.scale(1,1,-1);
+                case TRACKBALL:
+                case TURNTABLE:
+                default:
+                {
+                    QMatrix4x4 m;
+                    m.translate(0, 0, -m_distance);
+                    m.rotate(m_rotation);
+                    if (m_reverseHandedness)
+                    {
+                        m.scale(1,1,-1);
+                    }
+                    return qt2exr(m).translate(qt2exr(-m_center));
+                }
+
+                case NAVIGATION:
+                {
+                    QVector3D front;
+                    front.setX(cos(qDegreesToRadians(m_yaw)) * cos(qDegreesToRadians(m_pitch)));
+                    front.setY(sin(qDegreesToRadians(m_yaw)) * cos(qDegreesToRadians(m_pitch)));
+                    front.setZ(sin(qDegreesToRadians(m_pitch)));
+                    front = front.normalized();
+
+                    QMatrix4x4 m;
+                    m.lookAt(m_position, m_position + front, QVector3D(0, 0, 1));
+                    return qt2exr(m);
+                }
             }
-            return qt2exr(m).translate(-m_center);
-        }
-
-        /// Get view transformation from world to camera coordinates
-        Imath::M44d viewMatrix(float yaw, float pitch) const
-        {
-            QVector3D front;
-            front.setX(cos(qDegreesToRadians(yaw)) * cos(qDegreesToRadians(pitch)));
-            front.setY(sin(qDegreesToRadians(yaw)) * cos(qDegreesToRadians(pitch)));
-            front.setZ(sin(qDegreesToRadians(pitch)));
-            front = front.normalized();
-
-            QVector3D center(m_center.x, m_center.y, m_center.z);
-            QMatrix4x4 m;
-            m.lookAt(center, center + front, QVector3D(0, 0, 1));
-            return qt2exr(m);
         }
 
         /// Get transformation from screen coords to viewport coords
@@ -120,30 +156,55 @@ class InteractiveCamera : public QObject
         /// Get view rotation-only matrix
         Imath::M44d rotationMatrix() const
         {
-            QMatrix4x4 m;
-            //m.translate(0, 0, -m_dist);
-            m.rotate(m_rot);
-            if (m_reverseHandedness)
+            switch (m_mode)
             {
-                m.scale(1,1,-1);
+                case TRACKBALL:
+                case TURNTABLE:
+                default:
+                {
+                    QMatrix4x4 m;
+                    m.rotate(m_rotation);
+                    if (m_reverseHandedness)
+                    {
+                        m.scale(1,1,-1);
+                    }
+                    return qt2exr(m);
+                }
+
+                case NAVIGATION:
+                {
+                    QVector3D front;
+                    front.setX(cos(qDegreesToRadians(m_yaw)) * cos(qDegreesToRadians(m_pitch)));
+                    front.setY(sin(qDegreesToRadians(m_yaw)) * cos(qDegreesToRadians(m_pitch)));
+                    front.setZ(sin(qDegreesToRadians(m_pitch)));
+                    front = front.normalized();
+
+                    QQuaternion q = QQuaternion::fromDirection(front, QVector3D(0, 0, 1));
+                    return qt2exr(QMatrix4x4(q.toRotationMatrix()));
+                }
             }
-            return qt2exr(m); //.translate(-m_center);
         }
 
-        /// Get the 2D region associated with the camera
-        QRect viewport() const     { return m_viewport; }
-        /// Get field of view
-        qreal fieldOfView() const  { return m_fieldOfView; }
-        /// Get center around which the camera will pivot
-        Imath::V3d center() const   { return m_center; }
-        /// Get position of camera
-        Imath::V3d position() const { return Imath::V3d(0,0,0)*viewMatrix().inverse(); }
-        /// Get distance from eye to center
-        qreal eyeToCenterDistance() const { return m_dist; }
-        /// Get the rotation about the center
-        QQuaternion rotation() const { return m_rot; }
-        /// Get the interaction mode
-        bool trackballInteraction() const { return m_trackballInteraction; }
+        // Examiner parameters
+        QVector3D   m_center;               ///< center of view for camera
+        QQuaternion m_rotation;             ///< camera rotation about center
+        float       m_distance = 5.0f;      ///< distance from center of view
+
+        // Navigation parameter
+        QVector3D   m_position;             ///< camera position
+        float       m_yaw   = 0.0f;         ///< XY plane yaw angle (degrees)
+        float       m_pitch = 0.0f;         ///< pitch angle (degrees) towards +Z or -Z
+
+        // Projection variables
+        float       m_fieldOfView = 60.0f;  ///< field of view in degrees
+        QRect       m_viewport;             ///< rectangle we'll drag inside
+
+        // Additional modes
+        bool        m_reverseHandedness = false; ///< Reverse the handedness of the coordinate system
+        CameraMode  m_mode = TURNTABLE;          ///< True for trackball style, false for turntable
+
+        Imath::V3d center()   const { return qt2exr(m_center);   }
+        Imath::V3d position() const { return qt2exr(m_position); }
 
         /// Grab and move a point in the 3D space with the mouse.
         ///
@@ -154,8 +215,8 @@ class InteractiveCamera : public QObject
         Imath::V3d mouseMovePoint(Imath::V3d p, QPoint mouseMovement,
                                   bool zooming) const
         {
-            qreal dx = 2*qreal(mouseMovement.x())/m_viewport.width();
-            qreal dy = 2*qreal(-mouseMovement.y())/m_viewport.height();
+            const float dx = 2*static_cast<float>(mouseMovement.x()) / m_viewport.width();
+            const float dy = 2*static_cast<float>(-mouseMovement.y()) / m_viewport.height();
             if (zooming)
             {
                 Imath::M44d view = viewMatrix();
@@ -174,64 +235,39 @@ class InteractiveCamera : public QObject
             m_viewport = rect;
             emit viewChanged();
         }
-        void setFieldOfView(qreal fov)
+        void setFieldOfView(float fov)
         {
             m_fieldOfView = fov;
             emit projectionChanged();
         }
         void setCenter(Imath::V3d center)
         {
-            m_center = center;
+            m_center = exr2qt(center);
+            if (m_mode != NAVIGATION)
+            {
+                m_position = exr2qt(Imath::V3d(0,0,0)*viewMatrix().inverse());
+            }
             emit viewChanged();
         }
-        void setEyeToCenterDistance(qreal dist)
+        void setEyeToCenterDistance(float distance)
         {
-            m_dist = dist;
+            m_distance = distance;
             emit viewChanged();
         }
         void setRotation(QQuaternion rotation)
         {
-            m_rot = rotation;
+            m_rotation = rotation;
             emit viewChanged();
         }
         void setRotation(QMatrix3x3 rot3x3)
         {
-            // From http://www.j3d.org/matrix_faq/matrfaq_latest.html#Q55
-            // via QQuaternion::fromRotation() (which is only available in Qt 5.5)
-            float scalar;
-            float axis[3];
-
-            const float trace = rot3x3(0, 0) + rot3x3(1, 1) + rot3x3(2, 2);
-            if (trace > 0.00000001f) {
-                const float s = 2.0f * std::sqrt(trace + 1.0f);
-                scalar = 0.25f * s;
-                axis[0] = (rot3x3(2, 1) - rot3x3(1, 2)) / s;
-                axis[1] = (rot3x3(0, 2) - rot3x3(2, 0)) / s;
-                axis[2] = (rot3x3(1, 0) - rot3x3(0, 1)) / s;
-            } else {
-                static int s_next[3] = { 1, 2, 0 };
-                int i = 0;
-                if (rot3x3(1, 1) > rot3x3(0, 0))
-                    i = 1;
-                if (rot3x3(2, 2) > rot3x3(i, i))
-                    i = 2;
-                int j = s_next[i];
-                int k = s_next[j];
-
-                const float s = 2.0f * std::sqrt(rot3x3(i, i) - rot3x3(j, j) - rot3x3(k, k) + 1.0f);
-                axis[i] = 0.25f * s;
-                scalar  = (rot3x3(k, j) - rot3x3(j, k)) / s;
-                axis[j] = (rot3x3(j, i) + rot3x3(i, j)) / s;
-                axis[k] = (rot3x3(k, i) + rot3x3(i, k)) / s;
-            }
-
-            m_rot = QQuaternion(scalar, axis[0], axis[1], axis[2]);
+            m_rotation = QQuaternion::fromRotationMatrix(rot3x3);
             emit viewChanged();
         }
 
         void setTrackballInteraction(bool trackballInteraction)
         {
-            m_trackballInteraction = trackballInteraction;
+            m_mode = trackballInteraction ? TRACKBALL : TURNTABLE;
         }
 
         /// Move the camera using a drag of the mouse.
@@ -245,23 +281,23 @@ class InteractiveCamera : public QObject
             if (zoom)
             {
                 // exponential zooming gives scale-independent sensitivity
-                qreal dy = qreal(currPos.y() - prevPos.y())/m_viewport.height();
-                const qreal zoomSpeed = 3.0f;
-                m_dist *= std::exp(zoomSpeed*dy);
+                float dy = float(currPos.y() - prevPos.y())/m_viewport.height();
+                const float zoomSpeed = 3.0f;
+                m_distance *= std::exp(zoomSpeed*dy);
             }
             else
             {
-                if (m_trackballInteraction)
+                if (m_mode == TRACKBALL)
                 {
-                    m_rot = trackballRotation(prevPos, currPos) * m_rot;
+                    m_rotation = trackballRotation(prevPos, currPos) * m_rotation;
                 }
                 else
                 {
                     // TODO: Not sure this is entirely consistent if the user
                     // switches between trackball and turntable modes...
-                    m_rot = turntableRotation(prevPos, currPos, m_rot);
+                    m_rotation = turntableRotation(prevPos, currPos, m_rotation);
                 }
-                m_rot.normalize();
+                m_rotation.normalize();
             }
             emit viewChanged();
         }
@@ -281,8 +317,8 @@ class InteractiveCamera : public QObject
         QQuaternion turntableRotation(QPoint prevPos, QPoint currPos,
                                       QQuaternion initialRot) const
         {
-            qreal dx = 4*qreal(currPos.x() - prevPos.x())/m_viewport.width();
-            qreal dy = 4*qreal(currPos.y() - prevPos.y())/m_viewport.height();
+            float dx = 4*float(currPos.x() - prevPos.x())/m_viewport.width();
+            float dy = 4*float(currPos.y() - prevPos.y())/m_viewport.height();
             QQuaternion r1 = QQuaternion::fromAxisAndAngle(QVector3D(1,0,0), 180/M_PI*dy);
             QQuaternion r2 = QQuaternion::fromAxisAndAngle(QVector3D(0,0,1), 180/M_PI*dx);
             return r1 * initialRot * r2;
@@ -300,7 +336,7 @@ class InteractiveCamera : public QObject
             // Compute the new and previous positions of the cursor on a 3D
             // virtual trackball.  Form a rotation around the axis which would
             // take the previous position to the new position.
-            const qreal trackballRadius = 1.1; // as in blender
+            const float trackballRadius = 1.1; // as in blender
             QVector3D p1 = trackballVector(prevPos, trackballRadius);
             QVector3D p2 = trackballVector(currPos, trackballRadius);
             QVector3D axis = QVector3D::crossProduct(p1, p2);
@@ -313,7 +349,7 @@ class InteractiveCamera : public QObject
             // after moving the mouse through any closed path is then the
             // identity, which means the model returns exactly to its previous
             // orientation when you return the mouse to the starting position.
-            qreal angle = 2*std::asin(axis.length()/(p1.length()*p2.length()));
+            float angle = 2*std::asin(axis.length()/(p1.length()*p2.length()));
             return QQuaternion::fromAxisAndAngle(axis, 180/M_PI*angle);
         }
 
@@ -334,14 +370,14 @@ class InteractiveCamera : public QObject
         /// cone, but I've used a cone here to improve mouse sensitivity near
         /// the edge of the view port without resorting to the no-asin() hack
         /// used by blender. - CJF
-        QVector3D trackballVector(QPoint pos, qreal r) const
+        QVector3D trackballVector(QPoint pos, float r) const
         {
             // Map x & y mouse locations to the interval [-1,1]
-            qreal x =  2.0*(pos.x() - m_viewport.center().x())/m_viewport.width();
-            qreal y = -2.0*(pos.y() - m_viewport.center().y())/m_viewport.height();
-            qreal d = sqrt(x*x + y*y);
+            float x =  2.0*(pos.x() - m_viewport.center().x())/m_viewport.width();
+            float y = -2.0*(pos.y() - m_viewport.center().y())/m_viewport.height();
+            float d = sqrt(x*x + y*y);
             // get projected z coordinate -      sphere : cone
-            qreal z = (d < r/M_SQRT2) ? sqrt(r*r - d*d) : r*M_SQRT2 - d;
+            float z = (d < r/M_SQRT2) ? sqrt(r*r - d*d) : r*M_SQRT2 - d;
             return QVector3D(x,y,z);
         }
 
@@ -369,19 +405,4 @@ class InteractiveCamera : public QObject
                 mOut[j][i] = m.constData()[4*j + i];
             return mOut;
         }
-
-        bool m_reverseHandedness = false; ///< Reverse the handedness of the coordinate system
-        bool m_trackballInteraction = true; ///< True for trackball style, false for turntable
-
-        // World coordinates
-        QQuaternion m_rot;        ///< camera rotation about center
-        Imath::V3d m_center;      ///< center of view for camera
-        qreal m_dist = 5;         ///< distance from center of view
-
-        // Projection variables
-        qreal m_fieldOfView = 60; ///< field of view in degrees
-        QRect m_viewport;         ///< rectangle we'll drag inside
 };
-
-
-#endif // AQSIS_INTERACTIVE_CAMERA_H_INCLUDED
