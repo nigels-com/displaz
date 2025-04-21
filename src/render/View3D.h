@@ -14,7 +14,6 @@
 #include <QVector>
 #include <QGLWidget>
 #include <QModelIndex>
-#include <QBasicTimer>
 
 #include "DrawCostModel.h"
 #include "InteractiveCamera.h"
@@ -51,7 +50,7 @@ class View3D : public QGLWidget
 
         void setShaderParamsUIWidget(QWidget* widget);
 
-        InteractiveCamera& camera() { return m_camera; }
+        Camera& camera() { return m_camera; }
 
         QColor background() const { return m_backgroundColor; }
 
@@ -99,7 +98,6 @@ class View3D : public QGLWidget
         void wheelEvent(QWheelEvent* event);
         void keyPressEvent(QKeyEvent* event) override;
         void keyReleaseEvent(QKeyEvent *event) override;
-        void timerEvent(QTimerEvent *event) override;
 
     private slots:
         void restartRender();
@@ -115,7 +113,7 @@ class View3D : public QGLWidget
         void setGrid(bool);
         void setAnnotations(bool);
 
-        void updateWASD();
+        void updateNavigation();
 
     private:
         double getDevicePixelRatio();
@@ -153,7 +151,7 @@ class View3D : public QGLWidget
         MainWindow* m_mainWindow = nullptr;
         DataSetUI* m_dataSet = nullptr;
         /// Mouse-based camera positioning
-        InteractiveCamera m_camera;
+        Camera m_camera;
         QPoint m_prevMousePos;
         Qt::MouseButton m_mouseButton;
         bool m_middleButton;
@@ -162,14 +160,9 @@ class View3D : public QGLWidget
         /// Position of 3D cursor
         V3d m_cursorPos;
         std::optional<V3d> m_prevCursorSnap;
-        /// WASD mode
-        bool m_wasd = false;
-        const int m_timerDuration = 10;
-        QBasicTimer m_timer;
+        /// Navigation mode
+        CameraMode m_previousCameraMode = TURNTABLE;  // For leaving NAVIGATION mode
         QSet<int> m_keysPressed;
-        QVector3D m_cameraPos = QVector3D(0,0,0);
-        float m_cameraYaw = 0.0f;
-        float m_cameraPitch = 0.0f;
         /// Background color for drawing
         QColor m_backgroundColor;
         /// Option to draw bounding boxes of point clouds
