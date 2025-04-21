@@ -17,6 +17,7 @@
 #include <QVector3D>
 #include <QMatrix4x4>
 #include <QRect>
+#include <QtMath>
 
 #ifdef __clang__
 #pragma GCC diagnostic push
@@ -86,6 +87,21 @@ class InteractiveCamera : public QObject
                 m.scale(1,1,-1);
             }
             return qt2exr(m).translate(-m_center);
+        }
+
+        /// Get view transformation from world to camera coordinates
+        Imath::M44d viewMatrix(float yaw, float pitch) const
+        {
+            QVector3D front;
+            front.setX(cos(qDegreesToRadians(yaw)) * cos(qDegreesToRadians(pitch)));
+            front.setY(sin(qDegreesToRadians(yaw)) * cos(qDegreesToRadians(pitch)));
+            front.setZ(sin(qDegreesToRadians(pitch)));
+            front = front.normalized();
+
+            QVector3D center(m_center.x, m_center.y, m_center.z);
+            QMatrix4x4 m;
+            m.lookAt(center, center + front, QVector3D(0, 0, 1));
+            return qt2exr(m);
         }
 
         /// Get transformation from screen coords to viewport coords

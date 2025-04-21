@@ -14,6 +14,7 @@
 #include <QVector>
 #include <QGLWidget>
 #include <QModelIndex>
+#include <QBasicTimer>
 
 #include "DrawCostModel.h"
 #include "InteractiveCamera.h"
@@ -96,7 +97,9 @@ class View3D : public QGLWidget
         void mousePressEvent(QMouseEvent* event);
         void mouseMoveEvent(QMouseEvent* event);
         void wheelEvent(QWheelEvent* event);
-        void keyPressEvent(QKeyEvent* event);
+        void keyPressEvent(QKeyEvent* event) override;
+        void keyReleaseEvent(QKeyEvent *event) override;
+        void timerEvent(QTimerEvent *event) override;
 
     private slots:
         void restartRender();
@@ -111,6 +114,8 @@ class View3D : public QGLWidget
         void setAxes(bool);
         void setGrid(bool);
         void setAnnotations(bool);
+
+        void updateWASD();
 
     private:
         double getDevicePixelRatio();
@@ -157,6 +162,14 @@ class View3D : public QGLWidget
         /// Position of 3D cursor
         V3d m_cursorPos;
         std::optional<V3d> m_prevCursorSnap;
+        /// WASD mode
+        bool m_wasd = false;
+        const int m_timerDuration = 10;
+        QBasicTimer m_timer;
+        QSet<int> m_keysPressed;
+        QVector3D m_cameraPos = QVector3D(0,0,0);
+        float m_cameraYaw = 0.0f;
+        float m_cameraPitch = 0.0f;
         /// Background color for drawing
         QColor m_backgroundColor;
         /// Option to draw bounding boxes of point clouds

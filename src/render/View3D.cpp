@@ -13,6 +13,7 @@
 
 #include <QTimer>
 #include <QAction>
+#include <QApplication>
 #include <QElapsedTimer>
 #include <QKeyEvent>
 #include <QLayout>
@@ -20,6 +21,7 @@
 #include <QMessageBox>
 #include <QGLFormat>
 #include <QSettings>
+#include <QtMath>
 
 #include "config.h"
 #include "fileloader.h"
@@ -253,11 +255,17 @@ void View3D::setAnnotations(bool enable)
 
 void View3D::centerOnGeometry(const QModelIndex& index)
 {
-    const Geometry& geom = *m_geometries->get()[index.row()];
-    m_cursorPos = geom.centroid();
-    m_camera.setCenter(m_cursorPos);
-    double diag = (geom.boundingBox().max - geom.boundingBox().min).length();
-    m_camera.setEyeToCenterDistance(diag*0.7 + 0.01);
+    if (m_wasd)
+    {
+    }
+    else
+    {
+        const Geometry& geom = *m_geometries->get()[index.row()];
+        m_cursorPos = geom.centroid();
+        m_camera.setCenter(m_cursorPos);
+        const double diag = (geom.boundingBox().max - geom.boundingBox().min).length();
+        m_camera.setEyeToCenterDistance(diag*0.7 + 0.01);
+    }
 }
 
 void View3D::centerOnPoint(const Imath::V3d& pos)
@@ -404,7 +412,7 @@ void View3D::paintGL()
     // Draw main scene
     TransformState transState(Imath::V2i(w, h),
                               m_camera.projectionMatrix(),
-                              m_camera.viewMatrix());
+                              m_wasd ? m_camera.viewMatrix(m_cameraYaw, m_cameraPitch) : m_camera.viewMatrix());
 
     glClearDepth(1.0f);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -490,14 +498,14 @@ void View3D::paintGL()
     }
 
     // Draw overlay stuff, including cursor position.
-    if (m_drawCursor)
+    if (m_drawCursor && !m_wasd)
     {
         drawCursor(transState, m_cursorPos, 10);
         //drawCursor(transState, m_camera.center(), 10);
     }
 
     // Draw overlay axes
-    if (m_drawAxes)
+    if (m_drawAxes && !m_wasd) // TODO in WASD mode?
     {
         drawAxes();
     }
@@ -508,13 +516,16 @@ void View3D::paintGL()
         drawAnnotations(transState, w, h);
     }
 
-    // Set up timer to draw a high quality frame if necessary
-    if (!drawCount.moreToDraw)
-        m_incrementalFrameTimer->stop();
-    else
-        m_incrementalFrameTimer->start(10);
+    if (!m_wasd)
+    {
+        // Set up timer to draw a high quality frame if necessary
+        if (!drawCount.moreToDraw)
+            m_incrementalFrameTimer->stop();
+        else
+            m_incrementalFrameTimer->start(10);
 
-    m_incrementalDraw = true;
+        m_incrementalDraw = true;
+    }
 }
 
 void View3D::drawMeshes(const TransformState& transState,
@@ -607,36 +618,87 @@ void View3D::snapToPoint(const Imath::V3d & pos)
 
 void View3D::mouseMoveEvent(QMouseEvent* event)
 {
-    if (m_mouseButton == Qt::MiddleButton)
-        return;
-    bool zooming = m_mouseButton == Qt::RightButton;
-    if (event->modifiers() & Qt::ControlModifier)
+    if (m_wasd)
     {
-        m_cursorPos = m_camera.mouseMovePoint(m_cursorPos,
-                                              event->pos() - m_prevMousePos,
-                                              zooming);
+        QPoint center = rect().center();
+        QPoint delta = event->pos() - center;
+
+        const float sensitivity = 0.1f;
+        m_cameraYaw   -= delta.x() * sensitivity;
+        m_cameraPitch -= delta.y() * sensitivity;
+
+        // Clamp pitch
+        if (m_cameraPitch >  89.0f) m_cameraPitch =  89.0f;
+        if (m_cameraPitch < -89.0f) m_cameraPitch = -89.0f;
+
+        // Recenter cursor
+        QCursor::setPos(mapToGlobal(center));
         restartRender();
     }
     else
-        m_camera.mouseDrag(m_prevMousePos, event->pos(), zooming);
+    {
+        if (m_mouseButton == Qt::MiddleButton)
+            return;
+        const bool zooming = m_mouseButton == Qt::RightButton;
+        if (event->modifiers() & Qt::ControlModifier)
+        {
+            m_cursorPos = m_camera.mouseMovePoint(m_cursorPos,
+                                                  event->pos() - m_prevMousePos,
+                                                  zooming);
+            restartRender();
+        }
+        else
+        {
+            m_camera.mouseDrag(m_prevMousePos, event->pos(), zooming);
+        }
 
-    m_prevMousePos = event->pos();
+        m_prevMousePos = event->pos();
+    }
 }
 
 
 void View3D::wheelEvent(QWheelEvent* event)
 {
-    // Translate mouse wheel events into vertical dragging for simplicity.
-    m_camera.mouseDrag(QPoint(0,0), QPoint(0, -event->angleDelta().y()/2), true);
+    if (m_wasd)
+    {
+    }
+    else
+    {
+        // Translate mouse wheel events into vertical dragging for simplicity.
+        m_camera.mouseDrag(QPoint(0,0), QPoint(0, -event->angleDelta().y()/2), true);
+    }
 }
 
 
 void View3D::keyPressEvent(QKeyEvent *event)
 {
+    // WASD
+
+    if (!event->isAutoRepeat())
+    {
+        m_keysPressed.insert(event->key());
+
+        if (m_wasd)
+        {
+            if (m_keysPressed.isEmpty())
+            {
+                m_timer.stop();
+            }
+            else
+            {
+                m_timer.start(m_timerDuration, this); // ~20 FPS
+            }
+
+            updateWASD();
+            restartRender();
+        }
+    }
+
     // Centre camera on current cursor location
     if (event->key() == Qt::Key_C)
     {
         m_camera.setCenter(m_cursorPos);
+        return;
     }
 
     if (m_dataSet)
@@ -673,10 +735,118 @@ void View3D::keyPressEvent(QKeyEvent *event)
         case Qt::Key_0:
             m_dataSet->selectIndex(9);
             break;
+        default:
+            break;
+        }
+    }
+
+    if (event->key() == Qt::Key_Escape)
+    {
+        if (m_wasd)
+        {
+            m_wasd = false;
+            setFocusPolicy(Qt::StrongFocus);
+            setMouseTracking(false);
+            m_camera.setEyeToCenterDistance(0.1);
+            QWidget::setCursor(Qt::ArrowCursor);
+            releaseMouse();
+            releaseKeyboard();
+            m_timer.stop();
+        }
+        else
+        {
+            m_wasd = true;
+            setFocusPolicy(Qt::StrongFocus);
+            setMouseTracking(true);
+            m_camera.setEyeToCenterDistance(0.1);
+            QWidget::setCursor(Qt::BlankCursor);
+            grabMouse();
+            grabKeyboard();
+            const QPoint center = rect().center();
+            QCursor::setPos(mapToGlobal(center));
+            m_timer.start(m_timerDuration, this); // ~20 FPS
+        }
+        event->ignore();
+        return;
+    }
+
+    event->ignore();
+}
+
+void View3D::keyReleaseEvent(QKeyEvent *event)
+{
+    // WASD
+
+    if (!event->isAutoRepeat())
+    {
+        m_keysPressed.remove(event->key());
+
+        if (m_wasd)
+        {
+            if (m_keysPressed.isEmpty())
+            {
+                m_timer.stop();
+            }
+            else
+            {
+                m_timer.start(m_timerDuration, this); // ~20 FPS
+            }
+
+            updateWASD();
+            restartRender();
         }
     }
 
     event->ignore();
+}
+
+void View3D::updateWASD()
+{
+    // WASD
+
+    const bool keyUp   = m_keysPressed.contains(Qt::Key_Space);
+    const bool keyDown = m_keysPressed.contains(Qt::Key_X);
+
+    QVector3D front;
+    front.setX(cos(qDegreesToRadians(m_cameraYaw)) * cos(qDegreesToRadians(m_cameraPitch)));
+    front.setY(sin(qDegreesToRadians(m_cameraYaw)) * cos(qDegreesToRadians(m_cameraPitch)));
+    front.setZ(sin(qDegreesToRadians(m_cameraPitch)));
+    front.normalize();
+
+    if (keyUp || keyDown)
+    {
+        front.setZ(0.0f);
+    }
+
+    const QVector3D up = QVector3D(0, 0, 1);
+    const QVector3D right = QVector3D::crossProduct(front, up).normalized();
+
+    // 1m/s walking, 5ms/s running
+
+    const float scale = QApplication::keyboardModifiers()&Qt::ShiftModifier ? 5.0 : 1.0;
+    const float speed = 1.0f;
+
+    if (m_keysPressed.contains(Qt::Key_W))     m_cameraPos += front * scale * speed;
+    if (m_keysPressed.contains(Qt::Key_S))     m_cameraPos -= front * scale * speed;
+    if (m_keysPressed.contains(Qt::Key_A))     m_cameraPos -= right * scale * speed;
+    if (m_keysPressed.contains(Qt::Key_D))     m_cameraPos += right * scale * speed;
+    if (keyUp)                                 m_cameraPos +=    up * scale * speed * 0.5;
+    if (keyDown)                               m_cameraPos -=    up * scale * speed * 0.5;
+
+    m_camera.setCenter(Imath::V3d(m_cameraPos.x(), m_cameraPos.y(), m_cameraPos.z()));
+}
+
+void View3D::timerEvent(QTimerEvent *event)
+{
+    if (m_wasd)
+    {
+        updateWASD();
+        restartRender();
+    }
+    else
+    {
+        m_timer.stop();
+    }
 }
 
 void View3D::initCursor(float cursorRadius, float centerPointRadius)
@@ -1093,7 +1263,7 @@ void View3D::drawGrid() const
 
     TransformState transState(Imath::V2i(width(), height()),
                               m_camera.projectionMatrix(),
-                              m_camera.viewMatrix());
+                              m_wasd ? m_camera.viewMatrix(m_cameraYaw, m_cameraPitch) : m_camera.viewMatrix());
 
     // Draw grid
     if (m_gridShader->isValid())
