@@ -671,6 +671,21 @@ void View3D::wheelEvent(QWheelEvent* event)
 {
     if (m_camera.m_mode == NAVIGATION)
     {
+        if (event->angleDelta().y() > 0)
+        {
+            if (m_camera.m_speedMode < m_camera.m_speed.size() - 2)
+            {
+                m_camera.m_speedMode++;
+            }
+        }
+
+        if (event->angleDelta().y() < 0)
+        {
+            if (m_camera.m_speedMode > 0)
+            {
+                m_camera.m_speedMode--;
+            }
+        }
     }
     else
     {
@@ -756,6 +771,7 @@ void View3D::keyPressEvent(QKeyEvent *event)
         {
             m_previousCameraMode = m_camera.m_mode;
             m_camera.m_mode = NAVIGATION;
+            m_camera.m_navigationTime = std::chrono::steady_clock::now();
             setFocusPolicy(Qt::StrongFocus);
             setMouseTracking(true);
             m_camera.setEyeToCenterDistance(0.1);
@@ -814,15 +830,22 @@ void View3D::updateNavigation()
 
     // 1m/s walking, 5ms/s running
 
-    const float scale = QApplication::keyboardModifiers()&Qt::ShiftModifier ? 5.0 : 1.0;
-    const float speed = 0.5f;
+//    const float scale = QApplication::keyboardModifiers()&Qt::ShiftModifier ? 5.0 : 1.0;
+//    const float scale = 1.0f;
+    const float speed = m_camera.m_speed[m_camera.m_speedMode];
 
-    if (m_keysPressed.contains(Qt::Key_W))     m_camera.m_position += front * scale * speed;
-    if (m_keysPressed.contains(Qt::Key_S))     m_camera.m_position -= front * scale * speed;
-    if (m_keysPressed.contains(Qt::Key_A))     m_camera.m_position -= right * scale * speed;
-    if (m_keysPressed.contains(Qt::Key_D))     m_camera.m_position += right * scale * speed;
-    if (keyUp)                                 m_camera.m_position +=    up * scale * speed * 0.5;
-    if (keyDown)                               m_camera.m_position -=    up * scale * speed * 0.5;
+    // Elapsed time between updates
+    const auto then = m_camera.m_navigationTime;
+    const auto now = std::chrono::steady_clock::now();
+    const float duration = std::min(0.1f, std::chrono::duration<float>(now - then).count());
+    m_camera.m_navigationTime = now;
+
+    if (m_keysPressed.contains(Qt::Key_W))     m_camera.m_position += front * duration * speed;
+    if (m_keysPressed.contains(Qt::Key_S))     m_camera.m_position -= front * duration * speed;
+    if (m_keysPressed.contains(Qt::Key_A))     m_camera.m_position -= right * duration * speed;
+    if (m_keysPressed.contains(Qt::Key_D))     m_camera.m_position += right * duration * speed;
+    if (keyUp)                                 m_camera.m_position +=    up * duration * speed * 0.5;
+    if (keyDown)                               m_camera.m_position -=    up * duration * speed * 0.5;
 
     // Update camera examiner to match
     m_camera.m_center = m_camera.m_position + dir;

@@ -10,7 +10,9 @@
 #       define _USE_MATH_DEFINES
 #   endif
 #endif
+
 #include <cmath>
+#include <chrono>
 
 #include <QRect>
 #include <QtMath>
@@ -194,6 +196,11 @@ class Camera : public QObject
         QVector3D   m_position;             ///< camera position
         float       m_yaw   = 0.0f;         ///< XY plane yaw angle (degrees)
         float       m_pitch = 0.0f;         ///< pitch angle (degrees) towards +Z or -Z
+
+        size_t      m_speedMode = 3;
+        const std::vector<float> m_speed = { 1.0, 2.0, 5.0, 10.0, 20.0, 50.0, 100.0 }; ///< speed in m/s
+
+        std::chrono::time_point<std::chrono::steady_clock> m_navigationTime;
 
         // Projection variables
         float       m_fieldOfView = 60.0f;  ///< field of view in degrees
