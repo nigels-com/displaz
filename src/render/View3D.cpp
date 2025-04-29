@@ -350,9 +350,10 @@ void View3D::initializeGL()
     // FIXME: Do something about this mess.  The shader editor widget needs to
     // be initialized with the default shader, but View3D can only compile
     // shaders after it has a valid OpenGL context.
-    MainWindow * pv_parent = dynamic_cast<MainWindow *>(parentWidget());
-    if (pv_parent)
-        pv_parent->openShaderFile(QString());
+    if (m_mainWindow)
+    {
+        m_mainWindow->openShaderFile(QString());
+    }
 
     setFocus();
 
@@ -766,6 +767,11 @@ void View3D::keyPressEvent(QKeyEvent *event)
             QWidget::setCursor(Qt::ArrowCursor);
             releaseMouse();
             releaseKeyboard();
+
+            if (m_mainWindow)
+            {
+                m_mainWindow->showMessage("Navigation mode inactive.");
+            }
         }
         else
         {
@@ -781,6 +787,11 @@ void View3D::keyPressEvent(QKeyEvent *event)
             const QPoint center = rect().center();
             QCursor::setPos(mapToGlobal(center));
             restartRender();
+
+            if (m_mainWindow)
+            {
+                m_mainWindow->showMessage("Navigation mode. Keyboard: WSAD horizontal movement, QE vertical movement. Mouse direction: look. Mouse wheel: speed. ESC to cancel");
+            }
         }
         event->ignore();
         return;

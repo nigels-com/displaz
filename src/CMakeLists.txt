@@ -85,6 +85,7 @@ set(gui_srcs
     HookFormatter.cpp
     HookManager.cpp
 
+    gui/Camera.cpp
     gui/DataSetUI.cpp
     gui/DataSetListView.cpp
     gui/GLSLHighlighter.cpp
