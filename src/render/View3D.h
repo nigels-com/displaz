@@ -113,8 +113,6 @@ class View3D : public QGLWidget
         void setGrid(bool);
         void setAnnotations(bool);
 
-        void updateNavigation();
-
     private:
         double getDevicePixelRatio();
         void initializeGLGeometry(int begin, int end);

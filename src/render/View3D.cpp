@@ -391,7 +391,7 @@ void View3D::paintGL()
 
     if (m_camera.m_mode == NAVIGATION)
     {
-        updateNavigation();
+        m_camera.updateNavigation(m_keysPressed);
     }
 
     QElapsedTimer frameTimer;
@@ -802,8 +802,6 @@ void View3D::keyPressEvent(QKeyEvent *event)
 
 void View3D::keyReleaseEvent(QKeyEvent *event)
 {
-    // WASD
-
     if (!event->isAutoRepeat())
     {
         m_keysPressed.remove(event->key());
@@ -815,50 +813,6 @@ void View3D::keyReleaseEvent(QKeyEvent *event)
     }
 
     event->ignore();
-}
-
-void View3D::updateNavigation()
-{
-    // WASD
-
-    const bool keyUp   = m_keysPressed.contains(Qt::Key_E);
-    const bool keyDown = m_keysPressed.contains(Qt::Key_Q);
-
-    QVector3D dir;
-    dir.setX(cos(qDegreesToRadians(m_camera.m_yaw)) * cos(qDegreesToRadians(m_camera.m_pitch)));
-    dir.setY(sin(qDegreesToRadians(m_camera.m_yaw)) * cos(qDegreesToRadians(m_camera.m_pitch)));
-    dir.setZ(sin(qDegreesToRadians(m_camera.m_pitch)));
-    dir.normalize();
-
-    QVector3D front(dir);
-    if (keyUp || keyDown)
-    {
-        front.setZ(0.0f);
-    }
-
-    const QVector3D up = QVector3D(0, 0, 1);
-    const QVector3D right = QVector3D::crossProduct(front, up).normalized();
-    const float speed = m_camera.m_speed[m_camera.m_speedMode];
-
-    // Elapsed time between updates
-    const auto then = m_camera.m_navigationTime;
-    const auto now = std::chrono::steady_clock::now();
-    const float duration = std::min(0.1f, std::chrono::duration<float>(now - then).count());
-    m_camera.m_navigationTime = now;
-
-    // Update camera position
-
-    if (m_keysPressed.contains(Qt::Key_W))     m_camera.m_position += front * duration * speed;
-    if (m_keysPressed.contains(Qt::Key_S))     m_camera.m_position -= front * duration * speed;
-    if (m_keysPressed.contains(Qt::Key_A))     m_camera.m_position -= right * duration * speed;
-    if (m_keysPressed.contains(Qt::Key_D))     m_camera.m_position += right * duration * speed;
-    if (keyUp)                                 m_camera.m_position +=    up * duration * speed * 0.5;
-    if (keyDown)                               m_camera.m_position -=    up * duration * speed * 0.5;
-
-    // Update camera examiner to match
-    m_camera.m_center = m_camera.m_position + dir;
-    m_camera.m_distance = 1.0f;
-    m_camera.m_rotation = QQuaternion::fromDirection(dir, QVector3D(0, 0, 1));
 }
 
 void View3D::initCursor(float cursorRadius, float centerPointRadius)

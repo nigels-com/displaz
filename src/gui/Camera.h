@@ -133,6 +133,8 @@ class Camera : public QObject
         /// than perpendicular to it.
         Imath::V3d mouseMovePoint(Imath::V3d p, QPoint mouseMovement, bool zooming) const;
 
+        void updateNavigation(const QSet<int>& keyboard);
+
     public slots:
         void setViewport(QRect rect);
         void setFieldOfView(float fov);
