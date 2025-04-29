@@ -810,8 +810,8 @@ void View3D::updateNavigation()
 {
     // WASD
 
-    const bool keyUp   = m_keysPressed.contains(Qt::Key_Space);
-    const bool keyDown = m_keysPressed.contains(Qt::Key_X);
+    const bool keyUp   = m_keysPressed.contains(Qt::Key_E);
+    const bool keyDown = m_keysPressed.contains(Qt::Key_Q);
 
     QVector3D dir;
     dir.setX(cos(qDegreesToRadians(m_camera.m_yaw)) * cos(qDegreesToRadians(m_camera.m_pitch)));
@@ -827,11 +827,6 @@ void View3D::updateNavigation()
 
     const QVector3D up = QVector3D(0, 0, 1);
     const QVector3D right = QVector3D::crossProduct(front, up).normalized();
-
-    // 1m/s walking, 5ms/s running
-
-//    const float scale = QApplication::keyboardModifiers()&Qt::ShiftModifier ? 5.0 : 1.0;
-//    const float scale = 1.0f;
     const float speed = m_camera.m_speed[m_camera.m_speedMode];
 
     // Elapsed time between updates
@@ -839,6 +834,8 @@ void View3D::updateNavigation()
     const auto now = std::chrono::steady_clock::now();
     const float duration = std::min(0.1f, std::chrono::duration<float>(now - then).count());
     m_camera.m_navigationTime = now;
+
+    // Update camera position
 
     if (m_keysPressed.contains(Qt::Key_W))     m_camera.m_position += front * duration * speed;
     if (m_keysPressed.contains(Qt::Key_S))     m_camera.m_position -= front * duration * speed;
