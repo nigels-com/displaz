@@ -51,12 +51,12 @@ displaz_qt_wrap_cpp(gui_moc_srcs
     HookFormatter.h
     HookManager.h
 
+    gui/Camera.h
     gui/DataSetUI.h
     gui/DataSetListView.h
     gui/DragSpinBox.h
     gui/GLSLHighlighter.h
     gui/HelpDialog.h
-    gui/InteractiveCamera.h
     gui/MainWindow.h
     gui/QtLogger.h
     gui/ShaderEditor.h

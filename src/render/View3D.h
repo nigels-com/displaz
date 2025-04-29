@@ -15,8 +15,8 @@
 #include <QGLWidget>
 #include <QModelIndex>
 
+#include "Camera.h"
 #include "DrawCostModel.h"
-#include "InteractiveCamera.h"
 #include "geometrycollection.h"
 #include "Annotation.h"
 #include "Enable.h"
