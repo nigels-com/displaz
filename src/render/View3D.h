@@ -16,6 +16,7 @@
 #include <QModelIndex>
 
 #include "Camera.h"
+#include "FrameRate.h"
 #include "DrawCostModel.h"
 #include "geometrycollection.h"
 #include "Annotation.h"

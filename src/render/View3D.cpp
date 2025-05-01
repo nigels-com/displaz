@@ -674,18 +674,12 @@ void View3D::wheelEvent(QWheelEvent* event)
     {
         if (event->angleDelta().y() > 0)
         {
-            if (m_camera.m_speedMode < m_camera.m_speed.size() - 2)
-            {
-                m_camera.m_speedMode++;
-            }
+            m_camera.navigateFaster();
         }
 
         if (event->angleDelta().y() < 0)
         {
-            if (m_camera.m_speedMode > 0)
-            {
-                m_camera.m_speedMode--;
-            }
+            m_camera.navigateSlower();
         }
     }
     else
@@ -717,42 +711,24 @@ void View3D::keyPressEvent(QKeyEvent *event)
         return;
     }
 
-    if (m_dataSet)
+    if (m_camera.m_mode == NAVIGATION)
     {
         switch (event->key())
         {
-        case Qt::Key_1:
-            m_dataSet->selectIndex(0);
-            break;
-        case Qt::Key_2:
-            m_dataSet->selectIndex(1);
-            break;
-        case Qt::Key_3:
-            m_dataSet->selectIndex(2);
-            break;
-        case Qt::Key_4:
-            m_dataSet->selectIndex(3);
-            break;
-        case Qt::Key_5:
-            m_dataSet->selectIndex(4);
-            break;
-        case Qt::Key_6:
-            m_dataSet->selectIndex(5);
-            break;
-        case Qt::Key_7:
-            m_dataSet->selectIndex(6);
-            break;
-        case Qt::Key_8:
-            m_dataSet->selectIndex(7);
-            break;
-        case Qt::Key_9:
-            m_dataSet->selectIndex(8);
-            break;
-        case Qt::Key_0:
-            m_dataSet->selectIndex(9);
-            break;
-        default:
-            break;
+            case Qt::Key_Minus:
+            case Qt::Key_Underscore:
+                m_camera.navigateSlower();
+                event->ignore();
+                return;
+
+            case Qt::Key_Plus:
+            case Qt::Key_Equal:
+                m_camera.navigateFaster();
+                event->ignore();
+                return;
+
+            default:
+                break;
         }
     }
 
@@ -790,11 +766,48 @@ void View3D::keyPressEvent(QKeyEvent *event)
 
             if (m_mainWindow)
             {
-                m_mainWindow->showMessage("Navigation mode. Keyboard: WSAD horizontal movement, QE vertical movement. Mouse direction: look. Mouse wheel: speed. ESC to cancel");
+                m_mainWindow->showMessage("Navigation mode. Keyboard: WSAD horizontal movement, QE vertical movement, +/- speed. Mouse direction: look. Mouse wheel: speed. ESC to cancel");
             }
         }
         event->ignore();
         return;
+    }
+
+    if (m_dataSet)
+    {
+        switch (event->key())
+        {
+        case Qt::Key_1:
+            m_dataSet->selectIndex(0);
+            break;
+        case Qt::Key_2:
+            m_dataSet->selectIndex(1);
+            break;
+        case Qt::Key_3:
+            m_dataSet->selectIndex(2);
+            break;
+        case Qt::Key_4:
+            m_dataSet->selectIndex(3);
+            break;
+        case Qt::Key_5:
+            m_dataSet->selectIndex(4);
+            break;
+        case Qt::Key_6:
+            m_dataSet->selectIndex(5);
+            break;
+        case Qt::Key_7:
+            m_dataSet->selectIndex(6);
+            break;
+        case Qt::Key_8:
+            m_dataSet->selectIndex(7);
+            break;
+        case Qt::Key_9:
+            m_dataSet->selectIndex(8);
+            break;
+        case Qt::Key_0:
+            m_dataSet->selectIndex(9);
+            break;
+        }
     }
 
     event->ignore();
