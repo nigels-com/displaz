@@ -238,6 +238,22 @@ QVector3D Camera::trackballVector(QPoint pos, float r) const
     return QVector3D(x,y,z);
 }
 
+void Camera::navigateSlower()
+{
+    if (m_speedMode > 0)
+    {
+        m_speedMode--;
+    }
+}
+
+void Camera::navigateFaster()
+{
+    if (m_speedMode < m_speed.size() - 2)
+    {
+        m_speedMode++;
+    }
+}
+
 void Camera::updateNavigation(const QSet<int>& keyboard)
 {
     const bool keyUp   = keyboard.contains(Qt::Key_E);
